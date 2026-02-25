@@ -1,88 +1,35 @@
-name: Deploy to Roblox
+name: Build Roblox Place File
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - production
-
-env:
-  ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
-  ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
-  ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./games/endless-escape
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install Rojo
-        run: |
-          wget -q -O rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.zip
-          unzip -q rojo.zip
-          chmod +x rojo
-          sudo mv rojo /usr/local/bin/
-          rojo --version
+        uses: rojo-rbx/setup-rojo@v1
+        with:
+          version: "^7.4"
 
       - name: Build place file
-        run: |
-          rojo build default.project.json --output EndlessEscape.rbxlx
-          ls -la EndlessEscape.rbxlx
+        working-directory: ./games/endless-escape
+        run: rojo build default.project.json --output EndlessEscape.rbxlx
 
-      - name: Deploy to Roblox (Production)
-        if: github.ref == 'refs/heads/main' && github.event.inputs.environment != 'development'
-        run: |
-          echo "Deploying to production place: $ROBLOX_PLACE_ID"
-          # Using rojo upload for Open Cloud deployment
-          rojo upload default.project.json \
-            --asset-id "$ROBLOX_PLACE_ID" \
-            --api-key "$ROBLOX_API_KEY"
-
-      - name: Deploy to Roblox (Development)
-        if: github.event.inputs.environment == 'development'
-        run: |
-          echo "Deploying to development place"
-          rojo upload default.project.json \
-            --asset-id "$ROBLOX_PLACE_ID" \
-            --api-key "$ROBLOX_API_KEY"
-
-      - name: Upload build artifact
+      - name: Upload place file
         uses: actions/upload-artifact@v4
         with:
           name: EndlessEscape-Build
           path: games/endless-escape/EndlessEscape.rbxlx
-          retention-days: 7
+          retention-days: 30
 
-  notify:
-    needs: build-and-deploy
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-      - name: Notify on success
-        if: needs.build-and-deploy.result == 'success'
+      - name: Build summary
         run: |
-          echo "✅ Deployment successful!"
-          echo "Place ID: ${{ secrets.ROBLOX_PLACE_ID }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Author: ${{ github.actor }}"
-
-      - name: Notify on failure
-        if: needs.build-and-deploy.result == 'failure'
-        run: |
-          echo "❌ Deployment failed!"
-          echo "Check the logs above for errors."
+          echo "✅ Build complete!"
+          echo "Download the place file from the Artifacts section above."
