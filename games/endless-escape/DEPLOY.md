@@ -3,7 +3,24 @@
 
 ---
 
-## 🚀 Option 1: Rojo Sync (Recommended for Developers)
+## 🔄 Option 1: Auto-Deploy via GitHub Actions (Recommended)
+
+Push code → GitHub automatically deploys to Roblox.
+
+### Setup (One Time)
+1. Follow the [CI-CD Setup Guide](../../CI-CD.md)
+2. Add your Roblox API keys to GitHub Secrets
+3. Done!
+
+### Deploy
+```bash
+git push origin main
+```
+That's it. GitHub Actions builds and deploys automatically.
+
+---
+
+## 🚀 Option 2: Rojo Sync (For Development)
 
 ### Prerequisites
 - Install [Rojo](https://rojo.space/): `cargo install rojo` or download from [releases](https://github.com/rojo-rbx/rojo/releases)
@@ -26,11 +43,11 @@
    - Click **Connect** (default: localhost:34872)
    - Click **Sync** → all scripts auto-import
 
-4. **Configure game settings** (see Step 2 below)
+4. **Configure game settings** (see Configuration below)
 
 ---
 
-## 📁 Option 2: Manual Copy-Paste
+## 📁 Option 3: Manual Copy-Paste (No Tools)
 
 ### Step 1: Create Place
 
