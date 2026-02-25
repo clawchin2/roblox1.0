@@ -1,0 +1,66 @@
+{
+  "name": "Endless Escape",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Config": {
+          "$path": "src/ReplicatedStorage/Shared/Config.lua"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "GameManager": {
+        "$path": "src/ServerScriptService/GameManager.server.lua"
+      },
+      "Modules": {
+        "$className": "Folder",
+        "DataManager": {
+          "$path": "src/ServerScriptService/Modules/DataManager.lua"
+        },
+        "EconomyManager": {
+          "$path": "src/ServerScriptService/Modules/EconomyManager.lua"
+        },
+        "ShopManager": {
+          "$path": "src/ServerScriptService/Modules/ShopManager.lua"
+        },
+        "ObstacleManager": {
+          "$path": "src/ServerScriptService/Modules/ObstacleManager.lua"
+        },
+        "DailyRewards": {
+          "$path": "src/ServerScriptService/Modules/DailyRewards.lua"
+        },
+        "LuckySpin": {
+          "$path": "src/ServerScriptService/Modules/LuckySpin.lua"
+        },
+        "Leaderboard": {
+          "$path": "src/ServerScriptService/Modules/Leaderboard.lua"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "ClientManager": {
+          "$path": "src/StarterPlayerScripts/ClientManager.client.lua"
+        },
+        "Modules": {
+          "$className": "Folder",
+          "LuckySpinUI": {
+            "$path": "src/StarterPlayerScripts/Modules/LuckySpinUI.lua"
+          },
+          "ShopUI": {
+            "$path": "src/StarterPlayerScripts/Modules/ShopUI.lua"
+          },
+          "LeaderboardUI": {
+            "$path": "src/StarterPlayerScripts/Modules/LeaderboardUI.lua"
+          }
+        }
+      }
+    }
+  }
+}

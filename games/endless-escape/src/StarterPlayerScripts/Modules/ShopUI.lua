@@ -87,7 +87,7 @@ coinDisplay.Text = "🪙 0"
 coinDisplay.TextColor3 = Color3.fromRGB(255, 215, 0)
 coinDisplay.TextSize = 20
 coinDisplay.Font = Enum.Font.GothamBold
-bcoinDisplay.ZIndex = 101
+coinDisplay.ZIndex = 101
 coinDisplay.Parent = shopFrame
 
 local coinCorner = Instance.new("UICorner")
