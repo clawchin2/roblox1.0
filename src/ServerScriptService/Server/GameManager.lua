@@ -12,8 +12,17 @@ local GameManager = {}
 GameManager.Players = {}
 GameManager.Generator = nil
 
--- Data stores
-local playerDataStore = DataStoreService:GetDataStore("PlayerData_v1")
+-- Try to get data store (will fail if API not enabled)
+local playerDataStore = nil
+local dataStoreEnabled = pcall(function()
+    playerDataStore = DataStoreService:GetDataStore("PlayerData_v1")
+end)
+
+if dataStoreEnabled then
+    print("[GameManager] DataStore enabled")
+else
+    print("[GameManager] DataStore not available - running without persistence")
+end
 
 function GameManager.init()
     GameManager.Generator = LevelGenerator.new()
@@ -21,17 +30,23 @@ function GameManager.init()
     Players.PlayerAdded:Connect(GameManager.onPlayerAdded)
     Players.PlayerRemoving:Connect(GameManager.onPlayerRemoving)
     
-    -- Start level generation
+    -- Start level generation IMMEDIATELY
     GameManager.Generator:start()
     
     print("[GameManager] Initialized")
 end
 
 function GameManager.onPlayerAdded(player)
-    -- Load data
-    local success, data = pcall(function()
-        return playerDataStore:GetAsync(player.UserId) or {}
-    end)
+    -- Load data (with fallback if datastore fails)
+    local data = {}
+    if dataStoreEnabled then
+        local success, loadedData = pcall(function()
+            return playerDataStore:GetAsync(player.UserId) or {}
+        end)
+        if success then
+            data = loadedData
+        end
+    end
     
     local playerData = {
         coins = data.coins or 0,
@@ -57,6 +72,7 @@ function GameManager.onPlayerAdded(player)
     
     local coins = Instance.new("IntValue")
     coins.Name = "Coins"
+    coins.Name = "Coins"
     coins.Value = playerData.coins
     coins.Parent = leaderstats
     
@@ -77,33 +93,21 @@ function GameManager.onCharacterAdded(player, character)
     humanoid.Died:Connect(function()
         data.lives = data.lives - 1
         if data.lives <= 0 then
-            -- Game over
             GameManager.savePlayerData(player)
         else
-            -- Respawn
             task.delay(2, function()
                 player:LoadCharacter()
             end)
         end
     end)
     
-    -- Apply speed/jump from skins
-    if data.currentSkin then
-        for _, skin in ipairs(GameConfig.SHOP_ITEMS.SKINS) do
-            if skin.id == data.currentSkin then
-                if skin.speedBonus then
-                    humanoid.WalkSpeed = GameConfig.PLAYER_SPEED + skin.speedBonus
-                end
-                if skin.jumpBonus then
-                    humanoid.JumpPower = GameConfig.PLAYER_JUMP + skin.jumpBonus
-                end
-            end
-        end
-    end
-    
     -- Position at spawn
     local hrp = character:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
+    if hrp then
+        -- Teleport to spawn position
+        hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
+        print("[GameManager] Spawned player at", tostring(GameConfig.SPAWN_POSITION))
+    end
 end
 
 function GameManager.onPlayerRemoving(player)
@@ -112,6 +116,8 @@ function GameManager.onPlayerRemoving(player)
 end
 
 function GameManager.savePlayerData(player)
+    if not dataStoreEnabled then return end
+    
     local data = GameManager.Players[player.UserId]
     if not data then return end
     
@@ -125,31 +131,16 @@ function GameManager.savePlayerData(player)
     end)
 end
 
--- Periodic save
-task.spawn(function()
-    while true do
-        task.wait(60)
-        for _, player in ipairs(Players:GetPlayers()) do
-            GameManager.savePlayerData(player)
+-- Periodic save (only if datastore enabled)
+if dataStoreEnabled then
+    task.spawn(function()
+        while true do
+            task.wait(60)
+            for _, player in ipairs(Players:GetPlayers()) do
+                GameManager.savePlayerData(player)
+            end
         end
-    end
-end)
-
--- Dev products
-MarketplaceService.ProcessReceipt = function(receiptInfo)
-    local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
-    if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
-    
-    local data = GameManager.Players[player.UserId]
-    if not data then return Enum.ProductPurchaseDecision.NotProcessedYet end
-    
-    -- Handle purchases
-    if receiptInfo.ProductId == REVIVE_PRODUCT_ID then
-        -- Revive logic
-        return Enum.ProductPurchaseDecision.PurchaseGranted
-    end
-    
-    return Enum.ProductPurchaseDecision.NotProcessedYet
+    end)
 end
 
 GameManager.init()

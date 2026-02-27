@@ -62,7 +62,6 @@ function LevelGenerator:spawnCoins(position, count)
         coin.Touched:Connect(function(hit)
             local player = game.Players:GetPlayerFromCharacter(hit:FindFirstAncestorOfClass("Model"))
             if player then
-                -- Fire coin collected event
                 local leaderstats = player:FindFirstChild("leaderstats")
                 if leaderstats and leaderstats:FindFirstChild("Coins") then
                     leaderstats.Coins.Value = leaderstats.Coins.Value + 1
@@ -87,7 +86,6 @@ function LevelGenerator:generateNextPlatform()
     
     local platform, part = Platform.CreatePlatform(platformType, newPos, self.platformFolder)
     
-    -- Spawn coins
     if settings.coinDensity and math.random() < 0.7 then
         self:spawnCoins(newPos, math.random(1, settings.coinDensity))
     end
@@ -99,27 +97,43 @@ function LevelGenerator:generateNextPlatform()
     return platform
 end
 
-function LevelGenerator:cleanupBehindPlayer(playerZ)
-    local cleanupDistance = 100
-    for i = #self.platforms, 1, -1 do
-        local platform = self.platforms[i]
-        if platform.instance and platform.instance.Position.Z > playerZ + cleanupDistance then
-            platform:destroy()
-            table.remove(self.platforms, i)
-        end
-    end
-end
-
 function LevelGenerator:start()
+    print("[LevelGenerator] Starting level generation...")
+    
     self.active = true
     self.platformFolder = Instance.new("Folder")
     self.platformFolder.Name = "GeneratedLevel"
     self.platformFolder.Parent = workspace
     
+    -- Create STARTING PLATFORM at spawn position (safe zone)
+    print("[LevelGenerator] Creating starting platform at", tostring(GameConfig.SPAWN_POSITION))
+    local startPlatform = Instance.new("Part")
+    startPlatform.Name = "StartPlatform"
+    startPlatform.Size = Vector3.new(20, 1, 20)
+    startPlatform.Position = GameConfig.SPAWN_POSITION
+    startPlatform.Anchored = true
+    startPlatform.Color = Color3.fromRGB(100, 200, 100)
+    startPlatform.Material = Enum.Material.SmoothPlastic
+    startPlatform.Parent = self.platformFolder
+    
+    -- Create a visual indicator for spawn
+    local spawnMarker = Instance.new("Part")
+    spawnMarker.Name = "SpawnMarker"
+    spawnMarker.Size = Vector3.new(2, 10, 2)
+    spawnMarker.Position = GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0)
+    spawnMarker.Anchored = true
+    spawnMarker.Color = Color3.fromRGB(255, 255, 0)
+    spawnMarker.Material = Enum.Material.Neon
+    spawnMarker.Parent = self.platformFolder
+    
+    -- Generate initial platforms
     for i = 1, 15 do
         self:generateNextPlatform()
     end
     
+    print("[LevelGenerator] Generated", #self.platforms, "platforms")
+    
+    -- Continuous generation loop
     task.spawn(function()
         while self.active do
             local furthestZ = math.huge
@@ -137,6 +151,17 @@ function LevelGenerator:start()
             task.wait(0.5)
         end
     end)
+end
+
+function LevelGenerator:cleanupBehindPlayer(playerZ)
+    local cleanupDistance = 100
+    for i = #self.platforms, 1, -1 do
+        local platform = self.platforms[i]
+        if platform.instance and platform.instance.Position.Z > playerZ + cleanupDistance then
+            platform:destroy()
+            table.remove(self.platforms, i)
+        end
+    end
 end
 
 function LevelGenerator:stop()
