@@ -1,7 +1,9 @@
--- GameManager - Fixed with respawn handling
+-- GameManager - FIXED with proper respawn and visible score
 print("[GameManager] Loading...")
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
 
 local playerData = {}
 
@@ -27,29 +29,42 @@ Players.PlayerAdded:Connect(function(player)
     playerData[player.UserId] = {
         startZ = nil,
         distance = 0,
-        deaths = 0
+        deaths = 0,
+        hasSpawned = false
     }
     
-    -- Handle spawn
+    -- Handle character spawn
     player.CharacterAdded:Connect(function(char)
+        print("[GameManager] Character added for " .. player.Name)
+        
+        local data = playerData[player.UserId]
         local hrp = char:WaitForChild("HumanoidRootPart")
         local humanoid = char:WaitForChild("Humanoid")
         
-        local data = playerData[player.UserId]
+        -- ALWAYS teleport to start position
+        task.wait(0.1)
+        hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
+        print("[GameManager] Teleported " .. player.Name .. " to spawn")
         
-        -- If respawn (not first spawn), teleport to start
-        if data.deaths > 0 then
-            hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
-            print("[GameManager] Respawned " .. player.Name .. " at start")
-        end
-        
-        -- Set start Z for distance tracking
-        task.wait(0.1) -- Small delay to ensure position set
+        -- Reset distance tracking from new position
+        task.wait(0.2)
         data.startZ = hrp.Position.Z
+        data.distance = 0
+        
+        -- Update score to 0
+        local stats = player:FindFirstChild("leaderstats")
+        if stats then
+            local score = stats:FindFirstChild("Score")
+            if score then
+                score.Value = 0
+            end
+        end
         
         -- Handle death
         humanoid.Died:Connect(function()
+            print("[GameManager] " .. player.Name .. " died")
             data.deaths = data.deaths + 1
+            
             task.delay(2, function()
                 if player.Parent then
                     player:LoadCharacter()
@@ -59,10 +74,10 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
--- Distance tracking with print debug
+-- Distance tracking
  task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.1) -- Update faster
         
         for _, player in ipairs(Players:GetPlayers()) do
             local data = playerData[player.UserId]
@@ -74,27 +89,26 @@ end)
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then continue end
             
+            -- Calculate distance
             local dist = math.floor(data.startZ - hrp.Position.Z)
+            
             if dist > 0 and dist > data.distance then
                 data.distance = dist
                 
+                -- Update leaderstats
                 local stats = player:FindFirstChild("leaderstats")
                 if stats then
                     local score = stats:FindFirstChild("Score")
                     if score then
                         score.Value = data.distance
-                        -- Print every 50m
-                        if dist % 50 == 0 then
-                            print("[GameManager] " .. player.Name .. " reached " .. dist .. "m")
-                        end
                     end
                 end
             end
             
-            -- Fall safety
-            if hrp.Position.Y < -30 then
+            -- Fall safety - die if fall too far
+            if hrp.Position.Y < -20 then
                 local humanoid = char:FindFirstChild("Humanoid")
-                if humanoid then
+                if humanoid and humanoid.Health > 0 then
                     humanoid.Health = 0
                 end
             end

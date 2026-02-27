@@ -1,4 +1,4 @@
--- LevelGenerator - Fixed version with faster generation
+-- LevelGenerator - FIXED with proper gaps
 print("[LevelGenerator] Loading...")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,68 +13,88 @@ function LevelGenerator.new()
     self.platforms = {}
     self.lastPos = GameConfig.SPAWN_POSITION
     self.platformFolder = nil
+    self.initialized = false
     return self
 end
 
 function LevelGenerator:start()
     print("[LevelGenerator] Starting...")
     
+    -- Clear any existing
+    if self.platformFolder then
+        self.platformFolder:Destroy()
+    end
+    
     self.platformFolder = Instance.new("Folder")
     self.platformFolder.Name = "Platforms"
     self.platformFolder.Parent = workspace
     
-    -- Bigger starting platform
-    local start = Platform.CreatePlatform("static", GameConfig.SPAWN_POSITION, self.platformFolder)
-    start.Size = Vector3.new(30, 1, 30)
-    start.Color = Color3.fromRGB(100, 255, 100)
+    -- Reset position
+    self.lastPos = GameConfig.SPAWN_POSITION
+    self.platforms = {}
     
-    -- Generate first 15 platforms immediately
-    for i = 1, 15 do
-        self:generateNext()
+    -- Bigger starting platform (40x40)
+    local start = Platform.CreatePlatform("static", GameConfig.SPAWN_POSITION, self.platformFolder)
+    start.Size = Vector3.new(40, 1, 40)
+    start.Color = Color3.fromRGB(100, 255, 100)
+    start.Name = "StartPlatform"
+    
+    -- Generate first 20 platforms with PROPER gaps
+    for i = 1, 20 do
+        self:generateNext(i)
     end
     
-    print("[LevelGenerator] Generated 15 platforms")
-    
-    -- Generate faster (every 0.5s instead of 2s)
-    task.spawn(function()
-        while true do
-            task.wait(0.5)
-            self:generateNext()
-        end
-    end)
+    self.initialized = true
+    print("[LevelGenerator] Generated 20 platforms, ready!")
 end
 
-function LevelGenerator:generateNext()
-    local gap = math.random(6, 10) -- Smaller gaps
-    local xOffset = math.random(-2, 2) -- Less side variation
+function LevelGenerator:generateNext(index)
+    -- Fixed 8-stud gap (jumpable but not too easy)
+    local gap = 8
     
+    -- Small random x offset for variety
+    local xOffset = math.random(-2, 2)
+    
+    -- Move forward (negative Z is forward)
     self.lastPos = self.lastPos + Vector3.new(xOffset, 0, -gap)
     
     local platform = Platform.CreatePlatform("static", self.lastPos, self.platformFolder)
+    platform.Name = "Platform_" .. index
+    
+    -- First few platforms are easier (wider)
+    if index <= 5 then
+        platform.Size = Vector3.new(14, 1, 14)
+        platform.Color = Color3.fromRGB(120, 200, 120)
+    end
+    
     table.insert(self.platforms, platform)
     
-    -- Keep more platforms (40 instead of 30)
-    if #self.platforms > 40 then
+    -- Keep 50 platforms
+    if #self.platforms > 50 then
         local old = table.remove(self.platforms, 1)
         if old then old:Destroy() end
     end
 end
 
--- Reset for new player
+-- Reset everything for respawn
 function LevelGenerator:reset()
-    -- Clear old platforms
+    print("[LevelGenerator] Resetting...")
+    
+    -- Clear all platforms
     for _, p in ipairs(self.platforms) do
         if p then p:Destroy() end
     end
     self.platforms = {}
     
-    -- Reset position
+    -- Reset position to spawn
     self.lastPos = GameConfig.SPAWN_POSITION
     
     -- Regenerate
-    for i = 1, 15 do
-        self:generateNext()
+    for i = 1, 20 do
+        self:generateNext(i)
     end
+    
+    print("[LevelGenerator] Reset complete")
 end
 
 return LevelGenerator
