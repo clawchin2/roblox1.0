@@ -13,32 +13,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Rojo
+    - name: Setup Rojo
+      uses: ok-nick/setup-rojo@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Verify Rojo
       run: |
-        # Download and install Rojo
-        wget -q https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.tar.gz
-        tar -xzf rojo-7.4.4-linux-x86_64.tar.gz
-        chmod +x rojo
-        sudo mv rojo /usr/local/bin/
-        echo "Rojo version:"
-        rojo --version || echo "Rojo might not be in PATH"
+        rojo --version
+        which rojo
     
     - name: Verify project structure
       run: |
         echo "=== Verifying Lua files ==="
         find src -name "*.lua" -type f
-        echo ""
-        echo "=== Verifying init.server.lua exists ==="
-        ls -la src/ServerScriptService/Server/init.server.lua
     
     - name: Build Place File
       run: |
-        cd $GITHUB_WORKSPACE
-        echo "Current directory: $(pwd)"
-        echo "Building with Rojo..."
-        rojo build default.project.json -o EndlessEscape.rbxl || exit 1
+        rojo build default.project.json -o EndlessEscape.rbxl
         echo "Build successful!"
-        ls -la EndlessEscape.rbxl || echo "Output file not found!"
+        ls -la EndlessEscape.rbxl
     
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -57,9 +51,9 @@ jobs:
           echo "⚠️ Roblox API key not configured. Skipping publish."
           exit 0
         fi
-        
         echo "Publishing to Roblox..."
         curl -X POST "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions" \
           -H "x-api-key: ${ROBLOX_API_KEY}" \
           -H "Content-Type: application/octet-stream" \
-          --data-binary @EndlessEscape.rbxl && echo "✅ Published!" || echo "❌ Publish failed"
+          --data-binary @EndlessEscape.rbxl
+        echo "✅ Published!"
