@@ -149,14 +149,26 @@ deathScreen.Visible = false
 deathScreen.Parent = mainUI
 
 local deathText = Instance.new("TextLabel")
-deathText.Size = UDim2.new(0, 400, 0, 80)
-deathText.Position = UDim2.new(0.5, -200, 0.4, 0)
+deathText.Name = "DeathText"
+deathText.Size = UDim2.new(0, 400, 0, 60)
+deathText.Position = UDim2.new(0.5, -200, 0.35, 0)
 deathText.BackgroundTransparency = 1
 deathText.Text = "YOU DIED"
 deathText.TextColor3 = Color3.fromRGB(255, 100, 100)
 deathText.TextScaled = true
 deathText.Font = Enum.Font.GothamBold
 deathText.Parent = deathScreen
+
+local distanceText = Instance.new("TextLabel")
+distanceText.Name = "DistanceText"
+distanceText.Size = UDim2.new(0, 400, 0, 50)
+distanceText.Position = UDim2.new(0.5, -200, 0.45, 0)
+distanceText.BackgroundTransparency = 1
+distanceText.Text = "You ran 0m!"
+distanceText.TextColor3 = Color3.fromRGB(255, 255, 255)
+distanceText.TextScaled = true
+distanceText.Font = Enum.Font.GothamBold
+distanceText.Parent = deathScreen
 
 local reviveButton = Instance.new("TextButton")
 reviveButton.Name = "ReviveButton"
@@ -179,5 +191,54 @@ respawnButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 respawnButton.TextScaled = true
 respawnButton.Font = Enum.Font.GothamBold
 respawnButton.Parent = deathScreen
+
+-- Handle death screen visibility and distance display
+local function showDeathScreen(distance)
+    distanceText.Text = "You ran " .. tostring(math.floor(distance)) .. "m!"
+    deathScreen.Visible = true
+end
+
+local function hideDeathScreen()
+    deathScreen.Visible = false
+end
+
+-- Listen for character death
+player.CharacterAdded:Connect(function(character)
+    hideDeathScreen()
+    
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        -- Get final distance from leaderstats
+        local leaderstats = player:FindFirstChild("leaderstats")
+        local distance = 0
+        if leaderstats then
+            local score = leaderstats:FindFirstChild("Score")
+            if score then
+                distance = score.Value
+            end
+        end
+        showDeathScreen(distance)
+    end)
+end)
+
+-- Handle respawn button
+respawnButton.MouseButton1Click:Connect(function()
+    hideDeathScreen()
+    -- Respawn character
+    if player.Character then
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+        end
+    end
+end)
+
+-- Handle revive button (placeholder - would trigger Robux purchase)
+reviveButton.MouseButton1Click:Connect(function()
+    print("[UI] Revive requested - would trigger purchase flow")
+    -- In a real implementation, this would use MarketplaceService to prompt purchase
+    -- For now, just respawn
+    hideDeathScreen()
+end)
 
 print("[UI] Main UI initialized")

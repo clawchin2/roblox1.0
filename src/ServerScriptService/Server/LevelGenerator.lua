@@ -201,6 +201,57 @@ function LevelGenerator:createCheckpoint(parent, checkpointNum)
     return flag
 end
 
+-- Spawn coins on a platform
+function LevelGenerator:spawnCoins(platformPart, coinCount)
+    if not platformPart or not platformPart.Parent then return end
+    
+    coinCount = coinCount or math.random(1, 3)
+    local platformPos = platformPart.Position
+    local platformSize = platformPart.Size
+    
+    for i = 1, coinCount do
+        local coin = Instance.new("Part")
+        coin.Name = "Coin"
+        coin.Shape = Enum.PartType.Ball
+        coin.Size = Vector3.new(2, 2, 2)
+        
+        -- Position: spread across platform X, at chest height (Y + 3)
+        local xOffset = (math.random() - 0.5) * (platformSize.X - 4)
+        local zOffset = (math.random() - 0.5) * (platformSize.Z - 4)
+        coin.Position = platformPos + Vector3.new(xOffset, 3, zOffset)
+        
+        -- Visual properties
+        coin.Color = Color3.fromRGB(255, 215, 0) -- Gold
+        coin.Material = Enum.Material.Metal
+        coin.Anchored = true
+        coin.CanCollide = false
+        coin.Transparency = 0.1
+        
+        -- Add point light for visibility
+        local light = Instance.new("PointLight")
+        light.Color = Color3.fromRGB(255, 215, 0)
+        light.Brightness = 2
+        light.Range = 5
+        light.Parent = coin
+        
+        -- Set attributes for coin value
+        coin:SetAttribute("CoinValue", 10)
+        
+        -- Parent to platform folder
+        coin.Parent = self.platformFolder
+        
+        -- Spin animation
+        task.spawn(function()
+            while coin and coin.Parent do
+                coin.CFrame = coin.CFrame * CFrame.Angles(0, math.rad(5), 0)
+                task.wait(0.05)
+            end
+        end)
+        
+        print("[LevelGenerator] Spawned coin at " .. tostring(coin.Position))
+    end
+end
+
 -- Create safety net (invisible floor below platform)
 function LevelGenerator:createSafetyNet(position, size)
     local net = Instance.new("Part")
@@ -354,6 +405,9 @@ function LevelGenerator:generateTutorialPlatform(index)
         -- Make tutorial platforms visually distinct
         part.Color = Color3.fromRGB(100, 200, 255) -- Light blue for tutorial
         
+        -- Spawn coins on tutorial platforms (fewer coins in tutorial)
+        self:spawnCoins(part, 1)
+        
         table.insert(self.platforms, platform)
         self.lastPlatformPos = newPos
         self.currentDistance = self.currentDistance + config.gap
@@ -426,6 +480,11 @@ function LevelGenerator:generateNextPlatform()
         if index % 10 == 0 then
             self:createCheckpoint(part, math.floor(index / 10) + 1)
         end
+        
+        -- Spawn coins on platform (more coins as difficulty increases)
+        local settings = self:getDifficultySettings(self.currentDistance)
+        local coinCount = math.random(1, math.min(settings.coinDensity, 5))
+        self:spawnCoins(part, coinCount)
         
         table.insert(self.platforms, platform)
         self.lastPlatformPos = newPos
