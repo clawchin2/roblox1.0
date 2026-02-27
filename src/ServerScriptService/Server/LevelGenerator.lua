@@ -11,7 +11,8 @@ function LevelGenerator.new()
     local self = setmetatable({}, LevelGenerator)
     self.platforms = {}
     self.currentDistance = 0
-    self.lastPlatformPos = GameConfig.SPAWN_POSITION
+    -- Start generating from edge of baseplate (baseplate is 50x50 at y=9.5)
+    self.lastPlatformPos = Vector3.new(0, 10, -30) -- Start past the baseplate
     self.active = false
     return self
 end
@@ -50,7 +51,6 @@ function LevelGenerator:spawnCoins(position, count)
         coin.Position = position + Vector3.new(math.random(-4, 4), 3 + i * 2, math.random(-4, 4))
         coin.Parent = self.platformFolder
         
-        -- Spin animation
         task.spawn(function()
             while coin and coin.Parent do
                 coin.CFrame = coin.CFrame * CFrame.Angles(0, math.rad(5), 0)
@@ -58,7 +58,6 @@ function LevelGenerator:spawnCoins(position, count)
             end
         end)
         
-        -- Collection
         coin.Touched:Connect(function(hit)
             local player = game.Players:GetPlayerFromCharacter(hit:FindFirstAncestorOfClass("Model"))
             if player then
@@ -105,29 +104,8 @@ function LevelGenerator:start()
     self.platformFolder.Name = "GeneratedLevel"
     self.platformFolder.Parent = workspace
     
-    -- Create STARTING PLATFORM at spawn position (safe zone)
-    print("[LevelGenerator] Creating starting platform at", tostring(GameConfig.SPAWN_POSITION))
-    local startPlatform = Instance.new("Part")
-    startPlatform.Name = "StartPlatform"
-    startPlatform.Size = Vector3.new(20, 1, 20)
-    startPlatform.Position = GameConfig.SPAWN_POSITION
-    startPlatform.Anchored = true
-    startPlatform.Color = Color3.fromRGB(100, 200, 100)
-    startPlatform.Material = Enum.Material.SmoothPlastic
-    startPlatform.Parent = self.platformFolder
-    
-    -- Create a visual indicator for spawn
-    local spawnMarker = Instance.new("Part")
-    spawnMarker.Name = "SpawnMarker"
-    spawnMarker.Size = Vector3.new(2, 10, 2)
-    spawnMarker.Position = GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0)
-    spawnMarker.Anchored = true
-    spawnMarker.Color = Color3.fromRGB(255, 255, 0)
-    spawnMarker.Material = Enum.Material.Neon
-    spawnMarker.Parent = self.platformFolder
-    
-    -- Generate initial platforms
-    for i = 1, 15 do
+    -- Generate initial platforms extending from baseplate
+    for i = 1, 20 do
         self:generateNextPlatform()
     end
     

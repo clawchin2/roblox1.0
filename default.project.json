@@ -15,21 +15,6 @@
         "Utils": {
           "$path": "src/ReplicatedStorage/Modules/Utils.lua"
         }
-      },
-      "Events": {
-        "$className": "Folder",
-        "GameEvents": {
-          "$className": "Folder",
-          "PlayerDied": {
-            "$className": "RemoteEvent"
-          },
-          "CheckpointReached": {
-            "$className": "RemoteEvent"
-          },
-          "GameStart": {
-            "$className": "RemoteEvent"
-          }
-        }
       }
     },
     "ServerScriptService": {
@@ -53,11 +38,26 @@
     },
     "Workspace": {
       "$className": "Workspace",
+      "$properties": {
+        "Gravity": 196.2
+      },
       "SpawnLocation": {
         "$className": "SpawnLocation",
         "$properties": {
-          "Position": [0, 10, 0],
-          "Neutral": true
+          "Position": [0, 15, 0],
+          "Neutral": true,
+          "AllowTeamChangeOnTouch": false
+        }
+      },
+      "BasePlate": {
+        "$className": "Part",
+        "$properties": {
+          "Name": "BasePlate",
+          "Size": [50, 1, 50],
+          "Position": [0, 9.5, 0],
+          "Anchored": true,
+          "Color": [0.2, 0.7, 0.2],
+          "Material": "SmoothPlastic"
         }
       },
       "Lobby": {

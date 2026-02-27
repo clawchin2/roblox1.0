@@ -3,7 +3,6 @@
 
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
-local MarketplaceService = game:GetService("MarketplaceService")
 
 local LevelGenerator = require(script.Parent.LevelGenerator)
 local GameConfig = require(game.ReplicatedStorage.Modules.GameConfig)
@@ -25,18 +24,19 @@ else
 end
 
 function GameManager.init()
+    -- Start level generation BEFORE players join
     GameManager.Generator = LevelGenerator.new()
+    GameManager.Generator:start()
     
     Players.PlayerAdded:Connect(GameManager.onPlayerAdded)
     Players.PlayerRemoving:Connect(GameManager.onPlayerRemoving)
     
-    -- Start level generation IMMEDIATELY
-    GameManager.Generator:start()
-    
-    print("[GameManager] Initialized")
+    print("[GameManager] Initialized - waiting for players")
 end
 
 function GameManager.onPlayerAdded(player)
+    print("[GameManager] Player joining:", player.Name)
+    
     -- Load data (with fallback if datastore fails)
     local data = {}
     if dataStoreEnabled then
@@ -72,24 +72,26 @@ function GameManager.onPlayerAdded(player)
     
     local coins = Instance.new("IntValue")
     coins.Name = "Coins"
-    coins.Name = "Coins"
     coins.Value = playerData.coins
     coins.Parent = leaderstats
     
     leaderstats.Parent = player
     
-    -- Spawn character
+    -- Handle character spawning
     player.CharacterAdded:Connect(function(char)
         GameManager.onCharacterAdded(player, char)
     end)
     
-    print("[GameManager] Player joined:", player.Name)
+    print("[GameManager] Player ready:", player.Name)
 end
 
 function GameManager.onCharacterAdded(player, character)
+    print("[GameManager] Character spawned for", player.Name)
+    
     local humanoid = character:WaitForChild("Humanoid")
     local data = GameManager.Players[player.UserId]
     
+    -- Handle death
     humanoid.Died:Connect(function()
         data.lives = data.lives - 1
         if data.lives <= 0 then
@@ -101,12 +103,11 @@ function GameManager.onCharacterAdded(player, character)
         end
     end)
     
-    -- Position at spawn
+    -- SpawnLocation handles the spawn position automatically
+    -- Just print for debugging
     local hrp = character:WaitForChild("HumanoidRootPart")
     if hrp then
-        -- Teleport to spawn position
-        hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
-        print("[GameManager] Spawned player at", tostring(GameConfig.SPAWN_POSITION))
+        print("[GameManager] Spawned at", tostring(hrp.Position))
     end
 end
 

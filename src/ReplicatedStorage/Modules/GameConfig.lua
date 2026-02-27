@@ -6,7 +6,7 @@ local GameConfig = {}
 -- Game Balance
 GameConfig.PLAYER_SPEED = 16
 GameConfig.PLAYER_JUMP = 50
-GameConfig.SPAWN_POSITION = Vector3.new(0, 10, 0)
+GameConfig.SPAWN_POSITION = Vector3.new(0, 15, 0)  -- Matches SpawnLocation in project.json
 
 -- Platform Settings
 GameConfig.PLATFORM_SIZE = Vector3.new(12, 1, 12)
@@ -23,22 +23,15 @@ GameConfig.DIFFICULTY_STAGES = {
 }
 
 -- Monetization - Micro-relief model
-GameConfig.REVIVE_COST = 25        -- Robux to revive at death point
-GameConfig.SKIP_COST = 15          -- Robux to skip difficult section
-GameConfig.COIN_PACK_SMALL = 49    -- 100 coins
-GameConfig.COIN_PACK_MEDIUM = 99   -- 250 coins  
-GameConfig.COIN_PACK_LARGE = 199   -- 600 coins
+GameConfig.REVIVE_COST = 25
+GameConfig.SKIP_COST = 15
+GameConfig.COIN_PACK_SMALL = 49
+GameConfig.COIN_PACK_MEDIUM = 99
+GameConfig.COIN_PACK_LARGE = 199
 
 -- Coin economy
 GameConfig.COINS_PER_PLATFORM = 2
-GameConfig.COINS_BONUS_STREAK = 5  -- Extra coins for streaks
-
--- Game Modes
-GameConfig.MODES = {
-    CASUAL = "casual",      -- Infinite lives
-    NORMAL = "normal",      -- 3 lives
-    HARDCORE = "hardcore",  -- 1 life, no revives
-}
+GameConfig.COINS_BONUS_STREAK = 5
 
 -- Shop Items
 GameConfig.SHOP_ITEMS = {
@@ -52,9 +45,5 @@ GameConfig.SHOP_ITEMS = {
         {id = "jumper", name = "Jumper", price = 750, jumpBonus = 10},
     }
 }
-
--- Leaderboard
-GameConfig.LEADERBOARD_SIZE = 100
-GameConfig.SEASON_DAYS = 7
 
 return GameConfig
