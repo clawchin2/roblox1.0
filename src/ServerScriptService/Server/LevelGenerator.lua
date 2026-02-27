@@ -1,4 +1,4 @@
--- LevelGenerator - Generates platforms ahead of player
+-- LevelGenerator - Fixed version with faster generation
 print("[LevelGenerator] Loading...")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,45 +19,61 @@ end
 function LevelGenerator:start()
     print("[LevelGenerator] Starting...")
     
-    -- Create folder
     self.platformFolder = Instance.new("Folder")
     self.platformFolder.Name = "Platforms"
     self.platformFolder.Parent = workspace
     
-    -- Create starting platform
+    -- Bigger starting platform
     local start = Platform.CreatePlatform("static", GameConfig.SPAWN_POSITION, self.platformFolder)
-    start.Size = Vector3.new(20, 1, 20)
+    start.Size = Vector3.new(30, 1, 30)
     start.Color = Color3.fromRGB(100, 255, 100)
     
-    -- Generate first 10 platforms
-    for i = 1, 10 do
+    -- Generate first 15 platforms immediately
+    for i = 1, 15 do
         self:generateNext()
     end
     
-    print("[LevelGenerator] Generated 10 platforms")
+    print("[LevelGenerator] Generated 15 platforms")
     
-    -- Keep generating
+    -- Generate faster (every 0.5s instead of 2s)
     task.spawn(function()
         while true do
-            task.wait(2)
+            task.wait(0.5)
             self:generateNext()
         end
     end)
 end
 
 function LevelGenerator:generateNext()
-    local gap = math.random(GameConfig.PLATFORM_GAP_MIN, GameConfig.PLATFORM_GAP_MAX)
-    local xOffset = math.random(-3, 3)
+    local gap = math.random(6, 10) -- Smaller gaps
+    local xOffset = math.random(-2, 2) -- Less side variation
     
     self.lastPos = self.lastPos + Vector3.new(xOffset, 0, -gap)
     
     local platform = Platform.CreatePlatform("static", self.lastPos, self.platformFolder)
     table.insert(self.platforms, platform)
     
-    -- Cleanup old platforms
-    if #self.platforms > 30 then
+    -- Keep more platforms (40 instead of 30)
+    if #self.platforms > 40 then
         local old = table.remove(self.platforms, 1)
         if old then old:Destroy() end
+    end
+end
+
+-- Reset for new player
+function LevelGenerator:reset()
+    -- Clear old platforms
+    for _, p in ipairs(self.platforms) do
+        if p then p:Destroy() end
+    end
+    self.platforms = {}
+    
+    -- Reset position
+    self.lastPos = GameConfig.SPAWN_POSITION
+    
+    -- Regenerate
+    for i = 1, 15 do
+        self:generateNext()
     end
 end
 

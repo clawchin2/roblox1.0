@@ -1,9 +1,8 @@
--- GameManager - Server controller
+-- GameManager - Fixed with respawn handling
 print("[GameManager] Loading...")
 
 local Players = game:GetService("Players")
 
--- Simple player data
 local playerData = {}
 
 Players.PlayerAdded:Connect(function(player)
@@ -27,18 +26,40 @@ Players.PlayerAdded:Connect(function(player)
     
     playerData[player.UserId] = {
         startZ = nil,
-        distance = 0
+        distance = 0,
+        deaths = 0
     }
     
-    -- Track character
+    -- Handle spawn
     player.CharacterAdded:Connect(function(char)
         local hrp = char:WaitForChild("HumanoidRootPart")
-        playerData[player.UserId].startZ = hrp.Position.Z
-        print("[GameManager] Start position set for " .. player.Name)
+        local humanoid = char:WaitForChild("Humanoid")
+        
+        local data = playerData[player.UserId]
+        
+        -- If respawn (not first spawn), teleport to start
+        if data.deaths > 0 then
+            hrp.CFrame = CFrame.new(GameConfig.SPAWN_POSITION + Vector3.new(0, 5, 0))
+            print("[GameManager] Respawned " .. player.Name .. " at start")
+        end
+        
+        -- Set start Z for distance tracking
+        task.wait(0.1) -- Small delay to ensure position set
+        data.startZ = hrp.Position.Z
+        
+        -- Handle death
+        humanoid.Died:Connect(function()
+            data.deaths = data.deaths + 1
+            task.delay(2, function()
+                if player.Parent then
+                    player:LoadCharacter()
+                end
+            end)
+        end)
     end)
 end)
 
--- Distance tracking
+-- Distance tracking with print debug
  task.spawn(function()
     while true do
         task.wait(0.5)
@@ -54,15 +75,27 @@ end)
             if not hrp then continue end
             
             local dist = math.floor(data.startZ - hrp.Position.Z)
-            if dist > 0 then
-                data.distance = math.max(data.distance, dist)
+            if dist > 0 and dist > data.distance then
+                data.distance = dist
                 
                 local stats = player:FindFirstChild("leaderstats")
                 if stats then
                     local score = stats:FindFirstChild("Score")
                     if score then
                         score.Value = data.distance
+                        -- Print every 50m
+                        if dist % 50 == 0 then
+                            print("[GameManager] " .. player.Name .. " reached " .. dist .. "m")
+                        end
                     end
+                end
+            end
+            
+            -- Fall safety
+            if hrp.Position.Y < -30 then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Health = 0
                 end
             end
         end
