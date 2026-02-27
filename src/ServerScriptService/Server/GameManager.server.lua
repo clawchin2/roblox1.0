@@ -56,17 +56,10 @@ function setupClickEarning(player, character)
     local humanoid = character:WaitForChild("Humanoid")
     local hrp = character:WaitForChild("HumanoidRootPart")
     
-    -- Create click detector on ground
-    local clickPart = Instance.new("Part")
-    clickPart.Size = Vector3.new(100, 1, 100)
-    clickPart.Position = Vector3.new(0, 9, 0)
-    clickPart.Anchored = true
-    clickPart.Transparency = 1
-    clickPart.CanCollide = false
-    clickPart.Parent = workspace
-    
+    -- Use the spawn platform for clicking
     local clickDetector = Instance.new("ClickDetector")
-    clickDetector.Parent = clickPart
+    clickDetector.Parent = spawnPlatform
+    clickDetector.MaxActivationDistance = 100
     
     clickDetector.MouseClick:Connect(function(clickingPlayer)
         if clickingPlayer ~= player then return end
