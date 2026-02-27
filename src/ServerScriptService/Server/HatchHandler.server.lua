@@ -13,8 +13,15 @@ hatchEvent.OnServerEvent:Connect(function(player, eggType)
     local pet, error = _G.HatchEgg(player, eggType)
     
     if pet then
-        -- Tell client what they got
-        hatchEvent:FireClient(player, "success", pet)
+        -- Send pet data as simple values (tables don't replicate well)
+        local petData = {
+            name = pet.name,
+            rarity = pet.rarity,
+            id = pet.id,
+            speed = pet.speed,
+            coins = pet.coins
+        }
+        hatchEvent:FireClient(player, "success", petData)
         print("[Server] " .. player.Name .. " hatched " .. pet.name .. " (" .. pet.rarity .. ")")
     else
         hatchEvent:FireClient(player, "fail", error)

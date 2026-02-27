@@ -109,4 +109,9 @@ hatchEvent.OnClientEvent:Connect(function(result, data)
     end
 end)
 
-print("[HatchUI] Ready")
+print("[HatchUI] Ready - Listening for hatch events...")
+
+-- Debug: Test the connection
+hatchEvent.OnClientEvent:Connect(function(result, data)
+    print("[HatchUI] Received event: " .. tostring(result))
+end)
