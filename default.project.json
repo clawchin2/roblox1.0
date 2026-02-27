@@ -14,6 +14,9 @@
         },
         "Utils": {
           "$path": "src/ReplicatedStorage/Modules/Utils.lua"
+        },
+        "SoundManager": {
+          "$path": "src/ReplicatedStorage/Modules/SoundManager.lua"
         }
       }
     },
@@ -27,6 +30,9 @@
       },
       "LevelGeneratorModule": {
         "$path": "src/ServerScriptService/Server/LevelGenerator.lua"
+      },
+      "BackgroundManager": {
+        "$path": "src/ServerScriptService/Server/BackgroundManager.lua"
       }
     },
     "StarterPlayer": {
@@ -35,6 +41,9 @@
         "$className": "StarterPlayerScripts",
         "Client": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/Client"
+        },
+        "BackgroundClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/Client/BackgroundClient.client.lua"
         }
       }
     },
