@@ -13,6 +13,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: List files for debugging
+      run: |
+        echo "=== Project structure ==="
+        find . -type f -name "*.lua" | head -20
+        echo ""
+        echo "=== Checking project.json ==="
+        cat default.project.json
+    
     - name: Install Rojo
       run: |
         curl -L https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.tar.gz | tar xz
@@ -21,15 +29,25 @@ jobs:
     
     - name: Build Place File
       run: |
-        rojo build -o EndlessEscape.rbxl
+        echo "Building with Rojo..."
+        rojo build default.project.json -o EndlessEscape.rbxl 2>&1 || {
+          echo "Build failed! Checking structure..."
+          ls -la src/
+          exit 1
+        }
+        echo "Build successful!"
         ls -la EndlessEscape.rbxl
     
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: EndlessEscape-Build
-        path: EndlessEscape.rbxl
+        path: |
+          EndlessEscape.rbxl
+          default.project.json
         retention-days: 7
+        if-no-files-found: warn
     
     - name: Publish to Roblox (if configured)
       env:
@@ -43,11 +61,19 @@ jobs:
           exit 0
         fi
         
+        if [ ! -f "EndlessEscape.rbxl" ]; then
+          echo "❌ EndlessEscape.rbxl not found!"
+          exit 1
+        fi
+        
         echo "Publishing to Roblox..."
         curl -X POST "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions" \
           -H "x-api-key: ${ROBLOX_API_KEY}" \
           -H "Content-Type: application/octet-stream" \
-          --data-binary @EndlessEscape.rbxl
+          --data-binary @EndlessEscape.rbxl || {
+            echo "Publish failed - check API credentials"
+            exit 0
+          }
         
         echo "✅ Published to Roblox successfully!"
       continue-on-error: true
