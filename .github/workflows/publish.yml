@@ -15,7 +15,6 @@ jobs:
     
     - name: Install Rojo
       run: |
-        echo "=== Installing Rojo ==="
         curl -fsSL -o rojo.zip "https://github.com/rojo-rbx/rojo/releases/download/v7.6.1/rojo-7.6.1-linux-x86_64.zip"
         python3 -c "import zipfile; zipfile.ZipFile('rojo.zip').extractall('.')"
         chmod +x rojo
@@ -23,9 +22,7 @@ jobs:
     
     - name: Build .rbxl file
       run: |
-        echo "=== Building EndlessEscape.rbxl ==="
         ./rojo build default.project.json -o EndlessEscape.rbxl
-        echo "=== Build complete ==="
         ls -lh EndlessEscape.rbxl
     
     - name: Upload .rbxl artifact
