@@ -2,68 +2,90 @@
 
 A high-intensity endless runner obstacle course for Roblox. Jump, dodge, and survive through procedurally generated challenges.
 
+## 🚨 CURRENT REVAMP IN PROGRESS
+
+**Specialist agents are currently redesigning the game for better playability:**
+
+| Agent | Status | Focus |
+|-------|--------|-------|
+| 🎮 Game Designer | 🔄 Active | Tutorial, onboarding, level flow |
+| 🎨 UI Designer | 🔄 Active | Visual overhaul, animations, colors |
+| 🧪 Player Tester | 🔄 Active | Friction points, UX issues |
+| ⚙️ Gameplay Engineer | 🔄 Active | Camera, physics, safety nets |
+
+**Goal:** Make the game playable by a 10-year-old within 5 seconds of opening.
+
 ## 🎯 Current Status
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Baseplate Spawn | ✅ Working | Green 50x50 platform at start |
 | Platform Generation | ✅ Working | 25+ platforms generate ahead |
+| First Jump | 🔧 Being Fixed | Currently too far, agents working on it |
 | Player Movement | ✅ Working | Standard Roblox physics |
-| Camera | ✅ Working | Default camera (follow mode coming) |
+| Camera | 🔧 Being Fixed | Default → Smooth follow |
 | Server Scripts | ✅ Working | LevelGenerator + GameManager active |
-| UI/HUD | ✅ Basic | Score and coin counters visible |
+| UI/HUD | 🔧 Being Redesigned | Professional polish in progress |
+| Tutorial System | 🆕 Adding | Visual arrows, instructions |
+| Safety/Checkpoints | 🆕 Adding | No more infinite falling |
 | Shop System | 🔄 In Progress | UI visible, functionality pending |
-| Death/Respawn | ✅ Working | 3 second respawn delay |
-| Data Persistence | ⏳ Disabled | Requires API services enabled |
 
 ## 🏗️ Development Team & Agent Responsibilities
 
-### 1. Server/Gameplay Agent
+### 🎮 Game Designer Agent
 **Responsible for:**
-- `LevelGenerator.lua` - Procedural platform generation
-- `GameManager.server.lua` - Player lifecycle, leaderstats, respawn
-- `PlatformModule.lua` - Platform behaviors (kill, fade, bounce, move, etc.)
-- Server-side game logic and state management
+- Tutorial/onboarding experience
+- Level flow and pacing
+- Difficulty curve design
+- Player guidance systems (arrows, signs)
 
-**Current Priority:** Ensure platforms generate correctly and player spawns safely
+**Files:**
+- `LevelGenerator.lua` - Platform placement and spacing
+- Tutorial overlay systems
 
-### 2. Build/Integration Agent  
+### 🎨 UI/UX Designer Agent
 **Responsible for:**
-- `default.project.json` - Rojo project configuration
-- `.github/workflows/publish.yml` - CI/CD pipeline
-- Build validation and artifact generation
-- Ensuring all scripts make it into .rbxl file correctly
+- Visual polish and theming
+- Animation and feedback
+- Button styling and colors
+- HUD clarity and readability
 
-**Current Priority:** Verify Script vs LocalScript types are correct in builds
+**Files:**
+- `MainUIHandler.client.lua`
+- `TutorialUI.lua` (new)
+- Color schemes and gradients
 
-### 3. Client/UI Agent
+### ⚙️ Gameplay Engineer Agent
 **Responsible for:**
-- `CameraController.lua` - Smooth follow camera
-- `DistanceTracker.lua` - Score/distance calculation
-- `ShopController.lua` - Shop UI and purchase handling
-- `MainUIHandler.client.lua` - HUD, death screens, buttons
+- Camera controller (smooth follow)
+- Physics and collision
+- Safety systems (anti-fall)
+- Checkpoint system
+- Performance optimization
 
-**Current Priority:** Fix camera to follow player properly
+**Files:**
+- `CameraController.lua`
+- `GameManager.server.lua`
+- Safety/respawn logic
 
-### 4. Design/QA Agent
+### 🧪 Player Tester Agent
 **Responsible for:**
-- Visual polish and color schemes
-- Difficulty balancing
-- Playtesting and bug reports
-- Game feel and pacing
+- User experience testing
+- Friction point identification
+- Playability reports
+- Accessibility checks
 
-**Current Priority:** Test full game loop from spawn to death
+**Output:**
+- `PLAYER_FEEDBACK.md`
+- Issue prioritization
+- UX recommendations
 
-## 🎮 Platform Types
-
-| Type | Color | Behavior |
-|------|-------|----------|
-| Static | Gray | Basic platform |
-| Moving | Blue | Oscillates side-to-side |
-| Fading | Yellow | Disappears 1s after touch |
-| Crumbling | Brown | Shakes then falls |
-| Bounce | Green | Launch pad |
-| Kill | Red | Instant death |
+### 🔧 Build Integration Agent (Main)
+**Responsible for:**
+- Rojo configuration
+- GitHub Actions workflows
+- Build validation
+- Release management
 
 ## 🚀 Quick Start
 
@@ -111,12 +133,34 @@ EndlessEscape/
 │   │   ├── init.client.lua
 │   │   ├── CameraController.lua
 │   │   ├── DistanceTracker.lua
-│   │   └── ShopController.lua
+│   │   ├── ShopController.lua
+│   │   └── TutorialUI.lua        # 🆕 Tutorial system
 │   ├── StarterGui/
 │   │   └── MainUIHandler.client.lua
 │   └── Workspace/Lobby/
+├── PLAYER_FEEDBACK.md            # 🆕 UX testing reports
 └── README.md
 ```
+
+## 🎮 Platform Types
+
+| Type | Color | Behavior |
+|------|-------|----------|
+| Static | Gray | Basic platform |
+| Moving | Blue | Oscillates side-to-side |
+| Fading | Yellow | Disappears 1s after touch |
+| Crumbling | Brown | Shakes then falls |
+| Bounce | Green | Launch pad |
+| Kill | Red | Instant death |
+
+## 🎨 Design Principles (Being Implemented)
+
+1. **Immediate Clarity** - Player knows what to do in 3 seconds
+2. **Visual Guidance** - Arrows and signs show the way
+3. **Gradual Difficulty** - Easy start, ramp up slowly
+4. **Safety First** - Checkpoints prevent frustration
+5. **Juicy Feedback** - Every action has visual/audio response
+6. **Kid-Friendly** - Bright colors, big buttons, clear text
 
 ## 💰 Monetization Strategy
 
@@ -149,12 +193,6 @@ GameConfig.DIFFICULTY_STAGES = {
 GameConfig.REVIVE_COST = 25
 GameConfig.SKIP_COST = 15
 ```
-
-## 🐛 Known Issues
-
-1. **Camera** - Currently default, needs smooth follow implementation
-2. **Data Store** - Disabled until API services enabled on Roblox
-3. **Shop** - UI visible but purchases not functional yet
 
 ## 📝 License
 
