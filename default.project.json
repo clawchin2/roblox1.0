@@ -11,12 +11,6 @@
         },
         "GameConfig": {
           "$path": "src/ReplicatedStorage/Modules/GameConfig.lua"
-        },
-        "Utils": {
-          "$path": "src/ReplicatedStorage/Modules/Utils.lua"
-        },
-        "SoundManager": {
-          "$path": "src/ReplicatedStorage/Modules/SoundManager.lua"
         }
       }
     },
@@ -30,29 +24,16 @@
       },
       "MainScript": {
         "$path": "src/ServerScriptService/Server/MainScript.server.lua"
-      },
-      "BackgroundManager": {
-        "$path": "src/ServerScriptService/Server/BackgroundManager.lua"
-      },
-      "DebugTest": {
-        "$path": "src/ServerScriptService/Server/DebugTest.server.lua"
       }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "Client": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/Client"
-        },
-        "BackgroundClient": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/Client/BackgroundClient.client.lua"
+        "CameraController": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/Client/CameraController.client.lua"
         }
       }
-    },
-    "StarterGui": {
-      "$className": "StarterGui",
-      "$path": "src/StarterGui"
     },
     "Workspace": {
       "$className": "Workspace",
@@ -62,31 +43,10 @@
       "SpawnLocation": {
         "$className": "SpawnLocation",
         "$properties": {
-          "Position": [0, 15, 0],
+          "Position": [0, 10, 0],
           "Neutral": true,
-          "AllowTeamChangeOnTouch": false,
           "Enabled": true
         }
-      },
-      "BasePlate": {
-        "$className": "Part",
-        "$properties": {
-          "Size": [50, 1, 50],
-          "Position": [0, 9.5, 0],
-          "Anchored": true,
-          "Color": [0.2, 0.7, 0.2],
-          "Material": "SmoothPlastic",
-          "TopSurface": "Smooth",
-          "BottomSurface": "Smooth"
-        }
-      }
-    },
-    "Lighting": {
-      "$className": "Lighting",
-      "$properties": {
-        "Technology": "Future",
-        "Brightness": 2,
-        "GlobalShadows": true
       }
     }
   }
