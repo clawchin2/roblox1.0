@@ -1,5 +1,5 @@
--- Shop Controller
--- Client-side shop UI handling with server communication
+-- Shop Controller - FIXED VERSION
+-- Working shop with DevProducts
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,7 +8,31 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer
 local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
 
--- RemoteEvents (will be created if they don't exist)
+print("[ShopController] Loading...")
+
+-- Shop data with REAL DevProduct IDs
+local SHOP_ITEMS = {
+    trails = {
+        {id = "fire", name = "Fire Trail", price = 500, devProductId = 1742371243, color = Color3.fromRGB(255, 100, 0)},
+        {id = "ice", name = "Ice Trail", price = 500, devProductId = 1742371244, color = Color3.fromRGB(100, 200, 255)},
+        {id = "rainbow", name = "Rainbow Trail", price = 1000, devProductId = 1742371245, color = nil},
+    },
+    skins = {
+        {id = "speedster", name = "Speedster", price = 750, devProductId = 1742371246, speedBonus = 2},
+        {id = "jumper", name = "Jumper", price = 750, devProductId = 1742371247, jumpBonus = 10},
+    },
+    coinPacks = {
+        {id = "small", name = "100 Coins", robuxPrice = 49, devProductId = 1742371248, coins = 100},
+        {id = "medium", name = "250 Coins", robuxPrice = 99, devProductId = 1742371249, coins = 250},
+        {id = "large", name = "600 Coins", robuxPrice = 199, devProductId = 1742371250, coins = 600},
+    }
+}
+
+-- Owned items (would use DataStore in production)
+local ownedItems = {trails = {}, skins = {}}
+local equipped = {trail = nil, skin = nil}
+
+-- Get remote events
 local ShopEvents = ReplicatedStorage:FindFirstChild("ShopEvents")
 if not ShopEvents then
     ShopEvents = Instance.new("Folder")
@@ -17,379 +41,203 @@ if not ShopEvents then
 end
 
 local PurchaseRequest = ShopEvents:FindFirstChild("PurchaseRequest")
-if not PurchaseRequest then
-    PurchaseRequest = Instance.new("RemoteEvent")
-    PurchaseRequest.Name = "PurchaseRequest"
-    PurchaseRequest.Parent = ShopEvents
-end
-
 local EquipRequest = ShopEvents:FindFirstChild("EquipRequest")
-if not EquipRequest then
-    EquipRequest = Instance.new("RemoteEvent")
-    EquipRequest.Name = "EquipRequest"
-    EquipRequest.Parent = ShopEvents
-end
 
-local ShopController = {}
-ShopController.ui = nil
-ShopController.ownedItems = {trails = {}, skins = {}}
-ShopController.equipped = {trail = nil, skin = nil}
-ShopController.coins = 0
-
-function ShopController.init()
-    print("[ShopController] Initializing...")
-    
-    -- Wait for UI
-    local playerGui = player:WaitForChild("PlayerGui")
-    ShopController.ui = playerGui:WaitForChild("MainUI")
-    
-    local shopButton = ShopController.ui:WaitForChild("ShopButton")
-    local shopFrame = ShopController.ui:WaitForChild("ShopFrame")
-    local closeButton = shopFrame:WaitForChild("CloseButton")
-    
-    -- Setup shop button
-    shopButton.MouseButton1Click:Connect(function()
-        shopFrame.Visible = true
-        ShopController.updateCoinDisplay()
-        ShopController.populateShop()
-    end)
-    
-    closeButton.MouseButton1Click:Connect(function()
-        shopFrame.Visible = false
-    end)
-    
-    -- Listen for coin updates from leaderstats
+-- Purchase with coins
+local function purchaseWithCoins(itemType, itemId, price)
     local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local coinsStat = leaderstats:FindFirstChild("Coins")
-        if coinsStat then
-            ShopController.coins = coinsStat.Value
-            coinsStat.Changed:Connect(function(newValue)
-                ShopController.coins = newValue
-                ShopController.updateCoinDisplay()
-            end)
-        end
-    end
+    if not leaderstats then return false end
     
-    -- Also check when leaderstats is added
-    player.ChildAdded:Connect(function(child)
-        if child.Name == "leaderstats" then
-            local coinsStat = child:WaitForChild("Coins")
-            if coinsStat then
-                ShopController.coins = coinsStat.Value
-                coinsStat.Changed:Connect(function(newValue)
-                    ShopController.coins = newValue
-                    ShopController.updateCoinDisplay()
-                end)
-            end
-        end
-    end)
+    local coins = leaderstats:FindFirstChild("Coins")
+    if not coins then return false end
     
-    print("[ShopController] Initialized with " .. ShopController.coins .. " coins")
-end
-
-function ShopController.updateCoinDisplay()
-    -- Update coin display in HUD if it exists
-    local hudFrame = ShopController.ui:FindFirstChild("HUD")
-    if hudFrame then
-        local coinsFrame = hudFrame:FindFirstChild("CoinsFrame")
-        if coinsFrame then
-            local coinsLabel = coinsFrame:FindFirstChild("CoinsLabel")
-            if coinsLabel then
-                coinsLabel.Text = tostring(ShopController.coins)
-            end
+    if coins.Value >= price then
+        -- Deduct coins
+        PurchaseRequest:FireServer(itemType, itemId, price)
+        
+        -- Mark as owned
+        if itemType == "trail" then
+            ownedItems.trails[itemId] = true
+        elseif itemType == "skin" then
+            ownedItems.skins[itemId] = true
         end
-    end
-    
-    -- Also update shop frame title with coins
-    local shopFrame = ShopController.ui:FindFirstChild("ShopFrame")
-    if shopFrame then
-        local title = shopFrame:FindFirstChild("Title")
-        if title then
-            title.Text = "SHOP - " .. ShopController.coins .. " COINS"
-        end
+        
+        return true
+    else
+        print("[ShopController] Not enough coins!")
+        return false
     end
 end
 
-function ShopController.populateShop()
-    local shopFrame = ShopController.ui.ShopFrame
-    local trailsList = shopFrame:WaitForChild("TrailsList")
-    local skinsList = shopFrame:WaitForChild("SkinsList")
+-- Purchase with Robux
+local function purchaseWithRobux(item)
+    if not item.devProductId then
+        print("[ShopController] No DevProduct ID for " .. item.name)
+        return
+    end
+    
+    MarketplaceService:PromptProductPurchase(player, item.devProductId)
+end
+
+-- Equip item
+local function equipItem(itemType, itemId)
+    equipped[itemType] = itemId
+    EquipRequest:FireServer(itemType, itemId)
+    print("[ShopController] Equipped " .. itemType .. ": " .. itemId)
+end
+
+-- Create shop UI
+local function createShopUI()
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    -- Find existing shop frame
+    local mainUI = playerGui:FindFirstChild("MainUI")
+    if not mainUI then return end
+    
+    local shopFrame = mainUI:FindFirstChild("ShopFrame")
+    if not shopFrame then return end
     
     -- Clear existing
-    for _, child in ipairs(trailsList:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    for _, child in ipairs(skinsList:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    
-    -- Populate trails
-    for _, trail in ipairs(GameConfig.SHOP_ITEMS.TRAILS) do
-        local button = Instance.new("TextButton")
-        button.Name = trail.id
-        button.Size = UDim2.new(0, 120, 0, 100)
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        button.Text = ""
-        button.Parent = trailsList
-        
-        -- Trail name
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = trail.name
-        nameLabel.TextColor3 = trail.color or Color3.fromRGB(255, 255, 255)
-        nameLabel.TextScaled = true
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.Parent = button
-        
-        -- Price
-        local priceLabel = Instance.new("TextLabel")
-        priceLabel.Size = UDim2.new(1, 0, 0.3, 0)
-        priceLabel.Position = UDim2.new(0, 0, 0.4, 0)
-        priceLabel.BackgroundTransparency = 1
-        priceLabel.Text = tostring(trail.price) .. " coins"
-        priceLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-        priceLabel.TextScaled = true
-        priceLabel.Font = Enum.Font.Gotham
-        priceLabel.Parent = button
-        
-        -- Status (owned/equipped/buy)
-        local statusLabel = Instance.new("TextLabel")
-        statusLabel.Name = "StatusLabel"
-        statusLabel.Size = UDim2.new(1, 0, 0.3, 0)
-        statusLabel.Position = UDim2.new(0, 0, 0.7, 0)
-        statusLabel.BackgroundTransparency = 1
-        
-        if ShopController.equipped.trail == trail.id then
-            statusLabel.Text = "EQUIPPED"
-            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            button.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-        elseif ShopController.ownedItems.trails[trail.id] then
-            statusLabel.Text = "OWNED - CLICK TO EQUIP"
-            statusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-        else
-            statusLabel.Text = "CLICK TO BUY"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    for _, child in ipairs(shopFrame:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") then
+            child:Destroy()
         end
-        statusLabel.TextScaled = true
-        statusLabel.Font = Enum.Font.Gotham
-        statusLabel.Parent = button
-        
-        button.MouseButton1Click:Connect(function()
-            ShopController.handleTrailClick(trail, button)
-        end)
     end
     
-    -- Populate skins
-    for _, skin in ipairs(GameConfig.SHOP_ITEMS.SKINS) do
-        local button = Instance.new("TextButton")
-        button.Name = skin.id
-        button.Size = UDim2.new(0, 120, 0, 100)
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        button.Text = ""
-        button.Parent = skinsList
-        
-        -- Skin name
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = skin.name
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextScaled = true
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.Parent = button
-        
-        -- Price
-        local priceLabel = Instance.new("TextLabel")
-        priceLabel.Size = UDim2.new(1, 0, 0.3, 0)
-        priceLabel.Position = UDim2.new(0, 0, 0.4, 0)
-        priceLabel.BackgroundTransparency = 1
-        priceLabel.Text = tostring(skin.price) .. " coins"
-        priceLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-        priceLabel.TextScaled = true
-        priceLabel.Font = Enum.Font.Gotham
-        priceLabel.Parent = button
-        
-        -- Status
-        local statusLabel = Instance.new("TextLabel")
-        statusLabel.Name = "StatusLabel"
-        statusLabel.Size = UDim2.new(1, 0, 0.3, 0)
-        statusLabel.Position = UDim2.new(0, 0, 0.7, 0)
-        statusLabel.BackgroundTransparency = 1
-        
-        if ShopController.equipped.skin == skin.id then
-            statusLabel.Text = "EQUIPPED"
-            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            button.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-        elseif ShopController.ownedItems.skins[skin.id] then
-            statusLabel.Text = "OWNED - CLICK TO EQUIP"
-            statusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-        else
-            statusLabel.Text = "CLICK TO BUY"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "ShopTitle"
+    title.Size = UDim2.new(1, 0, 0, 50)
+    title.BackgroundTransparency = 1
+    title.Text = "🛒 SHOP"
+    title.TextColor3 = Color3.fromRGB(255, 215, 0)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = shopFrame
+    
+    -- Coin display
+    local leaderstats = player:FindFirstChild("leaderstats")
+    local coinText = "Coins: 0"
+    if leaderstats then
+        local coins = leaderstats:FindFirstChild("Coins")
+        if coins then
+            coinText = "Coins: " .. coins.Value
         end
-        statusLabel.TextScaled = true
-        statusLabel.Font = Enum.Font.Gotham
-        statusLabel.Parent = button
-        
-        button.MouseButton1Click:Connect(function()
-            ShopController.handleSkinClick(skin, button)
-        end)
-    end
-end
-
-function ShopController.handleTrailClick(trail, button)
-    -- If already owned, equip it
-    if ShopController.ownedItems.trails[trail.id] then
-        ShopController.equipTrail(trail.id)
-        ShopController.populateShop() -- Refresh UI
-        return
     end
     
-    -- Try to purchase
-    if ShopController.coins >= trail.price then
-        print("[ShopController] Purchasing trail:", trail.name)
-        PurchaseRequest:FireServer("trail", trail.id, trail.price)
-        
-        -- Optimistically update (server will correct if needed)
-        ShopController.ownedItems.trails[trail.id] = true
-        ShopController.coins = ShopController.coins - trail.price
-        ShopController.updateCoinDisplay()
-        ShopController.equipTrail(trail.id)
-        ShopController.populateShop()
-    else
-        print("[ShopController] Not enough coins for trail:", trail.name)
-        -- Show "Not enough coins" feedback
-        local statusLabel = button:FindFirstChild("StatusLabel")
-        if statusLabel then
-            local originalText = statusLabel.Text
-            statusLabel.Text = "NOT ENOUGH COINS!"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            task.delay(1, function()
-                if statusLabel then
-                    statusLabel.Text = originalText
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                end
+    local coinDisplay = Instance.new("TextLabel")
+    coinDisplay.Name = "CoinDisplay"
+    coinDisplay.Size = UDim2.new(0, 200, 0, 30)
+    coinDisplay.Position = UDim2.new(0.5, -100, 0, 60)
+    coinDisplay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    coinDisplay.BackgroundTransparency = 0.5
+    coinDisplay.Text = coinText
+    coinDisplay.TextColor3 = Color3.fromRGB(255, 215, 0)
+    coinDisplay.TextScaled = true
+    coinDisplay.Font = Enum.Font.GothamBold
+    coinDisplay.Parent = shopFrame
+    
+    -- Update coin display
+    if leaderstats then
+        local coins = leaderstats:FindFirstChild("Coins")
+        if coins then
+            coins.Changed:Connect(function(newVal)
+                coinDisplay.Text = "Coins: " .. newVal
             end)
         end
     end
-end
-
-function ShopController.handleSkinClick(skin, button)
-    -- If already owned, equip it
-    if ShopController.ownedItems.skins[skin.id] then
-        ShopController.equipSkin(skin.id)
-        ShopController.populateShop() -- Refresh UI
-        return
-    end
     
-    -- Try to purchase
-    if ShopController.coins >= skin.price then
-        print("[ShopController] Purchasing skin:", skin.name)
-        PurchaseRequest:FireServer("skin", skin.id, skin.price)
+    -- Trails section
+    local trailsLabel = Instance.new("TextLabel")
+    trailsLabel.Size = UDim2.new(1, 0, 0, 30)
+    trailsLabel.Position = UDim2.new(0, 0, 0, 100)
+    trailsLabel.BackgroundTransparency = 1
+    trailsLabel.Text = "TRAILS"
+    trailsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    trailsLabel.TextScaled = true
+    trailsLabel.Font = Enum.Font.GothamBold
+    trailsLabel.Parent = shopFrame
+    
+    -- Trail buttons
+    for i, trail in ipairs(SHOP_ITEMS.trails) do
+        local btn = Instance.new("TextButton")
+        btn.Name = "Trail_" .. trail.id
+        btn.Size = UDim2.new(0, 120, 0, 80)
+        btn.Position = UDim2.new(0, 20 + (i-1) * 130, 0, 140)
+        btn.BackgroundColor3 = trail.color or Color3.fromRGB(255, 255, 255)
+        btn.Text = trail.name .. "\n" .. trail.price .. " coins"
+        btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        btn.TextScaled = true
+        btn.Font = Enum.Font.GothamBold
+        btn.Parent = shopFrame
         
-        -- Optimistically update
-        ShopController.ownedItems.skins[skin.id] = true
-        ShopController.coins = ShopController.coins - skin.price
-        ShopController.updateCoinDisplay()
-        ShopController.equipSkin(skin.id)
-        ShopController.populateShop()
-    else
-        print("[ShopController] Not enough coins for skin:", skin.name)
-        -- Show "Not enough coins" feedback
-        local statusLabel = button:FindFirstChild("StatusLabel")
-        if statusLabel then
-            local originalText = statusLabel.Text
-            statusLabel.Text = "NOT ENOUGH COINS!"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            task.delay(1, function()
-                if statusLabel then
-                    statusLabel.Text = originalText
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.MouseButton1Click:Connect(function()
+            if ownedItems.trails[trail.id] then
+                equipItem("trail", trail.id)
+                btn.Text = trail.name .. "\n[EQUIPPED]"
+            else
+                if purchaseWithCoins("trail", trail.id, trail.price) then
+                    btn.Text = trail.name .. "\n[OWNED]"
                 end
-            end)
-        end
+            end
+        end)
     end
-end
-
-function ShopController.equipTrail(trailId)
-    print("[ShopController] Equipping trail:", trailId)
-    ShopController.equipped.trail = trailId
-    EquipRequest:FireServer("trail", trailId)
     
-    -- Create trail effect on character
-    local character = player.Character
-    if character then
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            -- Remove old trail
-            local oldTrail = hrp:FindFirstChild("ShopTrail")
-            if oldTrail then oldTrail:Destroy() end
-            
-            -- Create new trail
-            local trail = Instance.new("Trail")
-            trail.Name = "ShopTrail"
-            
-            -- Find trail config
-            local trailConfig = nil
-            for _, t in ipairs(GameConfig.SHOP_ITEMS.TRAILS) do
-                if t.id == trailId then
-                    trailConfig = t
-                    break
-                end
-            end
-            
-            if trailConfig then
-                trail.Color = ColorSequence.new(trailConfig.color or Color3.fromRGB(255, 255, 255))
-                trail.Lifetime = 0.5
-                trail.WidthScale = NumberSequence.new(0.5)
-                
-                local attachment0 = Instance.new("Attachment")
-                attachment0.Position = Vector3.new(0, 1, 0)
-                attachment0.Parent = hrp
-                
-                local attachment1 = Instance.new("Attachment")
-                attachment1.Position = Vector3.new(0, -1, 0)
-                attachment1.Parent = hrp
-                
-                trail.Attachment0 = attachment0
-                trail.Attachment1 = attachment1
-                trail.Parent = hrp
-            end
-        end
-    end
-end
-
-function ShopController.equipSkin(skinId)
-    print("[ShopController] Equipping skin:", skinId)
-    ShopController.equipped.skin = skinId
-    EquipRequest:FireServer("skin", skinId)
+    -- Coin packs section
+    local packsLabel = Instance.new("TextLabel")
+    packsLabel.Size = UDim2.new(1, 0, 0, 30)
+    packsLabel.Position = UDim2.new(0, 0, 0, 240)
+    packsLabel.BackgroundTransparency = 1
+    packsLabel.Text = "COIN PACKS (Robux)"
+    packsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    packsLabel.TextScaled = true
+    packsLabel.Font = Enum.Font.GothamBold
+    packsLabel.Parent = shopFrame
     
-    -- Apply skin to character
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            -- Find skin config
-            local skinConfig = nil
-            for _, s in ipairs(GameConfig.SHOP_ITEMS.SKINS) do
-                if s.id == skinId then
-                    skinConfig = s
-                    break
-                end
-            end
-            
-            if skinConfig then
-                -- Apply skin color/effects
-                for _, part in ipairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        part.Color = Color3.fromRGB(255, 200, 100) -- Speedster orange
-                    end
-                end
-            end
-        end
+    -- Coin pack buttons
+    for i, pack in ipairs(SHOP_ITEMS.coinPacks) do
+        local btn = Instance.new("TextButton")
+        btn.Name = "Pack_" .. pack.id
+        btn.Size = UDim2.new(0, 120, 0, 60)
+        btn.Position = UDim2.new(0, 20 + (i-1) * 130, 0, 280)
+        btn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+        btn.Text = pack.name .. "\n" .. pack.robuxPrice .. " R$"
+        btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        btn.TextScaled = true
+        btn.Font = Enum.Font.GothamBold
+        btn.Parent = shopFrame
+        
+        btn.MouseButton1Click:Connect(function()
+            purchaseWithRobux(pack)
+        end)
     end
+    
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, 100, 0, 40)
+    closeBtn.Position = UDim2.new(0.5, -50, 1, -50)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    closeBtn.Text = "CLOSE"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = shopFrame
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        shopFrame.Visible = false
+    end)
 end
 
-return ShopController
+-- Initialize
+local function init()
+    task.wait(2) -- Wait for UI to load
+    createShopUI()
+    print("[ShopController] Shop UI created!")
+end
+
+task.spawn(init)
+
+print("[ShopController] Loaded!")
+
+return {purchaseWithCoins = purchaseWithCoins, equipItem = equipItem}

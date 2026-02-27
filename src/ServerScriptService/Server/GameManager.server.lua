@@ -1,5 +1,5 @@
--- Game Manager - FIXED VERSION
--- Server controller with working coins, distance, and backgrounds
+-- Game Manager
+-- Main server controller with safety mechanics, checkpoint system, and death tracking
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,27 +7,234 @@ local RunService = game:GetService("RunService")
 
 print("[GameManager] Initializing...")
 
--- Get modules
-local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
+-- Create RemoteEvents for client communication
+local remotes = Instance.new("Folder")
+remotes.Name = "GameRemotes"
+remotes.Parent = ReplicatedStorage
+
+local playerDiedEvent = Instance.new("RemoteEvent")
+playerDiedEvent.Name = "PlayerDied"
+playerDiedEvent.Parent = remotes
+
+local requestRespawnEvent = Instance.new("RemoteEvent")
+requestRespawnEvent.Name = "RequestRespawn"
+requestRespawnEvent.Parent = remotes
 
 -- Safety configuration
 local SAFETY_CONFIG = {
-    FALL_THRESHOLD = -50,
-    CHECK_INTERVAL = 0.5,
-    TELEPORT_OFFSET = Vector3.new(0, 5, 0),
-    MAX_FALL_DISTANCE = -100,
+    FALL_THRESHOLD = -50,           -- Teleport if below Y = -50
+    CHECK_INTERVAL = 0.5,           -- Check every 0.5 seconds
+    TELEPORT_OFFSET = Vector3.new(0, 5, 0),  -- Spawn slightly above checkpoint
+    MAX_FALL_DISTANCE = -100,       -- Emergency respawn threshold
 }
 
--- Player data
+-- Monetization delay settings
+local MONETIZATION_CONFIG = {
+    MIN_DEATHS_FOR_SHOP = 3,        -- Show shop after 3 deaths
+    MIN_DISTANCE_FOR_SHOP = 100,    -- Or after reaching 100m
+}
+
+-- Player data storage
 local playerData = {}
 
--- Initialize player
-local function initPlayer(player)
+-- Initialize player data
+local function initPlayerData(player)
     playerData[player.UserId] = {
-        startZ = nil,
-        furthestDistance = 0,
-        coins = 0,
+        lastCheckpointPlatform = nil,  -- Index of last touched checkpoint
+        lastCheckpointPosition = Vector3.new(0, 15, 0),  -- Last safe position
+        furthestDistance = 0,          -- Furthest Z distance reached
+        currentDistance = 0,           -- Current distance
+        platformsTouched = {},         -- Track touched platforms
+        isFalling = false,             -- Falling state
+        deathCount = 0,                -- Total deaths
+        deathsThisRun = 0,             -- Deaths in current session
     }
+end
+
+-- Clean up player data
+local function cleanupPlayerData(player)
+    playerData[player.UserId] = nil
+end
+
+-- Get player's current distance (negative Z)
+local function getPlayerDistance(player)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = player.Character.HumanoidRootPart.Position
+        return math.abs(pos.Z)  -- Distance from start
+    end
+    return 0
+end
+
+-- Teleport player to checkpoint
+local function teleportToCheckpoint(player)
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    local checkpointPos = data.lastCheckpointPosition
+    local targetPos = checkpointPos + SAFETY_CONFIG.TELEPORT_OFFSET
+    
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        hrp.CFrame = CFrame.new(targetPos)
+        
+        -- Reset velocity
+        if player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        
+        print("[GameManager] Teleported " .. player.Name .. " to checkpoint at " .. tostring(checkpointPos))
+    end
+end
+
+-- Check if player should see shop or encouraging message
+local function shouldShowShop(player)
+    local data = playerData[player.UserId]
+    if not data then return false end
+    
+    -- Show shop if player has died 3+ times OR reached 100m+
+    local hasEnoughDeaths = data.deathCount >= MONETIZATION_CONFIG.MIN_DEATHS_FOR_SHOP
+    local hasEnoughDistance = data.furthestDistance >= MONETIZATION_CONFIG.MIN_DISTANCE_FOR_SHOP
+    
+    return hasEnoughDeaths or hasEnoughDistance
+end
+
+-- Handle player death
+local function handlePlayerDeath(player, distance)
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    -- Increment death counters
+    data.deathCount = data.deathCount + 1
+    data.deathsThisRun = data.deathsThisRun + 1
+    
+    -- Update furthest distance if needed
+    if distance > data.furthestDistance then
+        data.furthestDistance = distance
+    end
+    
+    -- Determine what to show on death screen
+    local showShop = shouldShowShop(player)
+    
+    print("[GameManager] " .. player.Name .. " died! Death count: " .. data.deathCount .. 
+          ", Furthest: " .. math.floor(data.furthestDistance) .. "m, ShowShop: " .. tostring(showShop))
+    
+    -- Fire event to client with death info
+    playerDiedEvent:FireClient(player, {
+        distance = math.floor(distance),
+        furthestDistance = math.floor(data.furthestDistance),
+        deathCount = data.deathCount,
+        showShop = showShop
+    })
+end
+
+-- Safety check - monitor player fall
+local function checkPlayerSafety(player)
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    
+    local hrp = player.Character.HumanoidRootPart
+    local pos = hrp.Position
+    
+    -- Check if player fell below threshold
+    if pos.Y < SAFETY_CONFIG.FALL_THRESHOLD then
+        print("[GameManager] " .. player.Name .. " fell below threshold (Y=" .. pos.Y .. "), teleporting to checkpoint")
+        teleportToCheckpoint(player)
+        data.isFalling = false
+        return
+    end
+    
+    -- Emergency check - way too far down
+    if pos.Y < SAFETY_CONFIG.MAX_FALL_DISTANCE then
+        print("[GameManager] EMERGENCY: " .. player.Name .. " way below threshold, respawning")
+        player:LoadCharacter()
+        return
+    end
+    
+    -- Update distance tracking
+    local currentDist = math.abs(pos.Z)
+    data.currentDistance = currentDist
+    
+    -- Update furthest distance and leaderstats
+    if currentDist > data.furthestDistance then
+        data.furthestDistance = currentDist
+        
+        -- Update leaderstats immediately
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if leaderstats then
+            local score = leaderstats:FindFirstChild("Score")
+            if score then
+                score.Value = math.floor(data.furthestDistance)
+            end
+        end
+    end
+end
+
+-- Setup platform touch detection for checkpoint system
+local function setupPlatformDetection(player, character)
+    local humanoid = character:WaitForChild("Humanoid")
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    -- Touch detection connection
+    local touchConnection = hrp.Touched:Connect(function(hit)
+        -- Check if touched a platform
+        if hit.Name:match("Platform") or hit.Parent.Name:match("GeneratedLevel") then
+            -- Update checkpoint if it's a checkpoint platform
+            local isCheckpoint = hit:GetAttribute("IsCheckpoint")
+            local platformIndex = hit:GetAttribute("PlatformIndex")
+            
+            if isCheckpoint and platformIndex then
+                data.lastCheckpointPlatform = platformIndex
+                data.lastCheckpointPosition = hit.Position
+                print("[GameManager] " .. player.Name .. " reached checkpoint at platform #" .. platformIndex)
+            end
+            
+            -- Always update last safe position when touching any platform
+            if hit.Position.Y > SAFETY_CONFIG.FALL_THRESHOLD then
+                data.lastCheckpointPosition = hit.Position
+            end
+        end
+    end)
+    
+    -- Store connection for cleanup
+    data.touchConnection = touchConnection
+    
+    -- Handle death
+    humanoid.Died:Connect(function()
+        local currentDist = getPlayerDistance(player)
+        handlePlayerDeath(player, currentDist)
+        
+        if data.touchConnection then
+            data.touchConnection:Disconnect()
+        end
+        
+        -- Respawn at checkpoint after delay
+        task.delay(3, function()
+            if player.Parent then
+                player:LoadCharacter()
+            end
+        end)
+    end)
+end
+
+-- Handle respawn request from client
+requestRespawnEvent.OnServerEvent:Connect(function(player)
+    print("[GameManager] Respawn requested by " .. player.Name)
+    player:LoadCharacter()
+end)
+
+-- Handle players
+Players.PlayerAdded:Connect(function(player)
+    print("[GameManager] Player joined: " .. player.Name)
+    
+    -- Initialize player data
+    initPlayerData(player)
     
     -- Create leaderstats
     local leaderstats = Instance.new("Folder")
@@ -43,158 +250,56 @@ local function initPlayer(player)
     coins.Value = 0
     coins.Parent = leaderstats
     
+    local distance = Instance.new("IntValue")
+    distance.Name = "Distance"
+    distance.Value = 0
+    distance.Parent = leaderstats
+    
     leaderstats.Parent = player
     
-    print("[GameManager] Leaderstats created for " .. player.Name)
-end
-
--- Setup character tracking
-local function setupCharacter(player, character)
-    local data = playerData[player.UserId]
-    if not data then return end
-    
-    local hrp = character:WaitForChild("HumanoidRootPart")
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- Set start Z position
-    data.startZ = hrp.Position.Z
-    print("[GameManager] " .. player.Name .. " start Z: " .. data.startZ)
-    
-    -- Handle death
-    humanoid.Died:Connect(function()
-        task.delay(3, function()
-            if player.Parent then
-                player:LoadCharacter()
-            end
-        end)
-    end)
-end
-
--- Players joining
-Players.PlayerAdded:Connect(function(player)
-    print("[GameManager] Player joined: " .. player.Name)
-    initPlayer(player)
-    
+    -- Handle character
     player.CharacterAdded:Connect(function(char)
-        setupCharacter(player, char)
+        print("[GameManager] Character spawned for " .. player.Name)
+        
+        -- Setup platform detection for checkpoint system
+        setupPlatformDetection(player, char)
+        
+        -- Reset falling state
+        local data = playerData[player.UserId]
+        if data then
+            data.isFalling = false
+        end
+    end)
+    
+    player.CharacterRemoving:Connect(function()
+        local data = playerData[player.UserId]
+        if data and data.touchConnection then
+            data.touchConnection:Disconnect()
+            data.touchConnection = nil
+        end
     end)
 end)
 
--- Main update loop - Distance tracking
-print("[GameManager] Starting distance tracking...")
+Players.PlayerRemoving:Connect(function(player)
+    print("[GameManager] Player left: " .. player.Name)
+    cleanupPlayerData(player)
+end)
+
+-- Main safety check loop
+print("[GameManager] Starting safety check loop...")
 task.spawn(function()
     while true do
-        task.wait(0.1) -- Update every 0.1 seconds
+        task.wait(SAFETY_CONFIG.CHECK_INTERVAL)
         
         for _, player in ipairs(Players:GetPlayers()) do
-            local data = playerData[player.UserId]
-            if not data then continue end
-            if not data.startZ then continue end
-            
-            local char = player.Character
-            if not char then continue end
-            
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then continue end
-            
-            -- Calculate distance
-            local currentZ = hrp.Position.Z
-            local distance = data.startZ - currentZ
-            
-            if distance > 0 then
-                data.furthestDistance = math.max(data.furthestDistance, distance)
-                
-                -- Update leaderstats
-                local leaderstats = player:FindFirstChild("leaderstats")
-                if leaderstats then
-                    local score = leaderstats:FindFirstChild("Score")
-                    if score then
-                        score.Value = math.floor(data.furthestDistance)
-                    end
-                end
-            end
-            
-            -- Safety check - teleport if fell
-            if hrp.Position.Y < SAFETY_CONFIG.FALL_THRESHOLD then
-                hrp.CFrame = CFrame.new(0, 15, 0)
-                print("[GameManager] Teleported " .. player.Name .. " back to start")
+            local success, err = pcall(function()
+                checkPlayerSafety(player)
+            end)
+            if not success then
+                warn("[GameManager] Error checking safety for " .. player.Name .. ": " .. tostring(err))
             end
         end
     end
 end)
 
--- COIN COLLECTION - Direct touch handler
-print("[GameManager] Setting up coin collection...")
-
-local function setupCoin(coin)
-    if coin:GetAttribute("CoinSetup") then return end
-    coin:SetAttribute("CoinSetup", true)
-    
-    coin.Touched:Connect(function(hit)
-        local char = hit:FindFirstAncestorOfClass("Model")
-        if not char then return end
-        
-        local player = Players:GetPlayerFromCharacter(char)
-        if not player then return end
-        
-        if not coin or not coin.Parent then return end
-        
-        -- Get value
-        local value = coin:GetAttribute("CoinValue") or 10
-        
-        -- Update coins
-        local leaderstats = player:FindFirstChild("leaderstats")
-        if leaderstats then
-            local coins = leaderstats:FindFirstChild("Coins")
-            if coins then
-                coins.Value = coins.Value + value
-                print("[GameManager] " .. player.Name .. " collected coin: " .. value .. " (Total: " .. coins.Value .. ")")
-            end
-        end
-        
-        -- Destroy with effect
-        coin:Destroy()
-    end)
-end
-
--- Setup existing coins
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj.Name == "Coin" and obj:IsA("BasePart") then
-        setupCoin(obj)
-    end
-end
-
--- Setup new coins as they're created
-workspace.DescendantAdded:Connect(function(descendant)
-    if descendant.Name == "Coin" and descendant:IsA("BasePart") then
-        task.wait(0.1) -- Small delay to ensure coin is fully created
-        setupCoin(descendant)
-    end
-end)
-
--- BACKGROUND MANAGER START
-print("[GameManager] Starting BackgroundManager...")
-local bgModule = script.Parent:FindFirstChild("BackgroundManager")
-if bgModule then
-    local success, BackgroundManager = pcall(function()
-        return require(bgModule)
-    end)
-    if success and BackgroundManager then
-        local bgSuccess, bgErr = pcall(function()
-            local bg = BackgroundManager.new()
-            bg:start()
-            _G.BackgroundManager = bg
-        end)
-        if bgSuccess then
-            print("[GameManager] BackgroundManager started!")
-        else
-            warn("[GameManager] BackgroundManager failed: " .. tostring(bgErr))
-        end
-    else
-        warn("[GameManager] Could not load BackgroundManager: " .. tostring(BackgroundManager))
-    end
-else
-    warn("[GameManager] BackgroundManager not found")
-end
-
-print("[GameManager] Ready! Distance tracking and coins active.")
+print("[GameManager] Ready! Safety checks active.")
