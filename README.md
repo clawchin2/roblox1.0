@@ -2,84 +2,59 @@
 
 A high-intensity endless runner obstacle course for Roblox. Jump, dodge, and survive through procedurally generated challenges.
 
-## Features
+## 🎯 Current Status
 
-- 🏃 **Procedural Generation** - Infinite platforms, no two runs are the same
-- ☠️ **Multiple Hazards** - Kill zones, fading platforms, crumbling blocks, moving platforms
-- 🪙 **Coin Economy** - Collect coins to unlock cosmetics
-- 🛒 **Shop System** - Trails and skins with stat bonuses
-- 💀 **Revive System** - Micro-transaction relief at death moments
-- 📊 **Leaderboards** - Compete for distance
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Baseplate Spawn | ✅ Working | Green 50x50 platform at start |
+| Platform Generation | ✅ Working | 25+ platforms generate ahead |
+| Player Movement | ✅ Working | Standard Roblox physics |
+| Camera | ✅ Working | Default camera (follow mode coming) |
+| Server Scripts | ✅ Working | LevelGenerator + GameManager active |
+| UI/HUD | ✅ Basic | Score and coin counters visible |
+| Shop System | 🔄 In Progress | UI visible, functionality pending |
+| Death/Respawn | ✅ Working | 3 second respawn delay |
+| Data Persistence | ⏳ Disabled | Requires API services enabled |
 
-## Quick Start
+## 🏗️ Development Team & Agent Responsibilities
 
-### Option 1: Rojo Workflow (Recommended)
+### 1. Server/Gameplay Agent
+**Responsible for:**
+- `LevelGenerator.lua` - Procedural platform generation
+- `GameManager.server.lua` - Player lifecycle, leaderstats, respawn
+- `PlatformModule.lua` - Platform behaviors (kill, fade, bounce, move, etc.)
+- Server-side game logic and state management
 
-1. **Install Rojo**:
-   ```bash
-   cargo install rojo
-   # or
-   npm install -g rojo
-   ```
+**Current Priority:** Ensure platforms generate correctly and player spawns safely
 
-2. **Clone this repo**:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/EndlessEscape.git
-   cd EndlessEscape
-   ```
+### 2. Build/Integration Agent  
+**Responsible for:**
+- `default.project.json` - Rojo project configuration
+- `.github/workflows/publish.yml` - CI/CD pipeline
+- Build validation and artifact generation
+- Ensuring all scripts make it into .rbxl file correctly
 
-3. **Start Rojo**:
-   ```bash
-   rojo serve
-   ```
+**Current Priority:** Verify Script vs LocalScript types are correct in builds
 
-4. **Connect in Roblox Studio**:
-   - Install [Rojo Plugin](https://www.roblox.com/library/4048317705)
-   - Click "Connect"
-   - Accept changes
+### 3. Client/UI Agent
+**Responsible for:**
+- `CameraController.lua` - Smooth follow camera
+- `DistanceTracker.lua` - Score/distance calculation
+- `ShopController.lua` - Shop UI and purchase handling
+- `MainUIHandler.client.lua` - HUD, death screens, buttons
 
-### Option 2: Manual Import
+**Current Priority:** Fix camera to follow player properly
 
-1. Create a new Roblox place
-2. Create folders matching the `src/` structure
-3. Copy-paste each script into the correct location
-4. Set `init.server.lua` to Script type
-5. Set `init.client.lua` to LocalScript type
-6. Set `LoadingScreen.lua` to LocalScript in ReplicatedFirst
+### 4. Design/QA Agent
+**Responsible for:**
+- Visual polish and color schemes
+- Difficulty balancing
+- Playtesting and bug reports
+- Game feel and pacing
 
-## Project Structure
+**Current Priority:** Test full game loop from spawn to death
 
-```
-EndlessEscape/
-├── default.project.json          # Rojo configuration
-├── src/
-│   ├── ReplicatedStorage/
-│   │   └── Modules/
-│   │       ├── PlatformModule.lua    # Platform behaviors
-│   │       ├── GameConfig.lua        # Balance settings
-│   │       └── Utils.lua             # Helper functions
-│   ├── ReplicatedFirst/
-│   │   └── LoadingScreen.lua         # Loading UI
-│   ├── ServerScriptService/
-│   │   └── Server/
-│   │       ├── init.server.lua       # Entry point
-│   │       ├── GameManager.lua       # Player data & state
-│   │       └── LevelGenerator.lua    # Procedural generation
-│   ├── StarterPlayer/
-│   │   └── StarterPlayerScripts/
-│   │       └── Client/
-│   │           ├── init.client.lua   # Client entry
-│   │           ├── CameraController.lua
-│   │           ├── DistanceTracker.lua
-│   │           └── ShopController.lua
-│   ├── StarterGui/
-│   │   └── MainUIHandler.client.lua  # UI system
-│   └── Workspace/
-│       └── Lobby/
-│           └── LobbyModel.lua
-```
-
-## Platform Types
+## 🎮 Platform Types
 
 | Type | Color | Behavior |
 |------|-------|----------|
@@ -90,44 +65,103 @@ EndlessEscape/
 | Bounce | Green | Launch pad |
 | Kill | Red | Instant death |
 
-## Monetization
+## 🚀 Quick Start
 
-The game uses a **micro-relief** model optimized for kid/teen engagement:
+### Download & Play (No Setup Required)
 
-- **Revive** (25 R$) - Continue from death point
-- **Skip** (15 R$) - Bypass difficult section  
-- **Coin Packs** - 49/99/199 R$ tiers
-- **Cosmetics** - Trails and skins via in-game coins
+1. Go to **GitHub Actions** tab in this repo
+2. Click the latest successful workflow run
+3. Download `EndlessEscape-Game` artifact
+4. Extract and open `EndlessEscape.rbxl` in Roblox Studio
+5. Press F5 to play!
 
-## Configuration
+### Development Setup (Rojo)
 
-Edit `GameConfig.lua` to balance:
+```bash
+# Install Rojo
+cargo install rojo
+
+# Clone repo
+git clone https://github.com/clawchin2/roblox1.0.git
+cd roblox1.0
+
+# Start Rojo
+rojo serve
+
+# In Roblox Studio: Install Rojo plugin → Connect
+```
+
+## 📁 Project Structure
+
+```
+EndlessEscape/
+├── default.project.json          # Rojo configuration
+├── .github/workflows/
+│   └── publish.yml               # Auto-build workflow
+├── src/
+│   ├── ReplicatedStorage/Modules/
+│   │   ├── PlatformModule.lua    # Platform behaviors
+│   │   ├── GameConfig.lua        # Balance settings
+│   │   └── Utils.lua
+│   ├── ServerScriptService/
+│   │   ├── MainScript.server.lua # Server entry point
+│   │   ├── GameManager.server.lua # Player management
+│   │   └── LevelGenerator.lua    # Procedural generation
+│   ├── StarterPlayer/Client/
+│   │   ├── init.client.lua
+│   │   ├── CameraController.lua
+│   │   ├── DistanceTracker.lua
+│   │   └── ShopController.lua
+│   ├── StarterGui/
+│   │   └── MainUIHandler.client.lua
+│   └── Workspace/Lobby/
+└── README.md
+```
+
+## 💰 Monetization Strategy
+
+**Micro-relief model** optimized for kid/teen engagement:
+
+| Product | Cost | Description |
+|---------|------|-------------|
+| Revive | 25 R$ | Continue from death point |
+| Skip | 15 R$ | Bypass difficult section |
+| Coin Pack (Small) | 49 R$ | 100 coins |
+| Coin Pack (Medium) | 99 R$ | 250 coins |
+| Coin Pack (Large) | 199 R$ | 600 coins |
+
+## ⚙️ Configuration
+
+Edit `GameConfig.lua`:
 
 ```lua
--- Difficulty curve
+-- Spawn position
+GameConfig.SPAWN_POSITION = Vector3.new(0, 15, 0)
+
+-- Difficulty stages
 GameConfig.DIFFICULTY_STAGES = {
     {distance = 0,    gapRange = {8, 12},  hazardChance = 0.1},
     {distance = 100,  gapRange = {10, 16}, hazardChance = 0.2},
-    -- Add more stages...
+    {distance = 250,  gapRange = {12, 20}, hazardChance = 0.35},
 }
 
--- Prices
+-- Monetization
 GameConfig.REVIVE_COST = 25
-GameConfig.COIN_PACK_SMALL = 49
+GameConfig.SKIP_COST = 15
 ```
 
-## Development Roadmap
+## 🐛 Known Issues
 
-- [ ] Multiplayer racing mode
-- [ ] Daily challenges
-- [ ] Season pass system
-- [ ] Mobile optimizations
-- [ ] Sound effects & music
+1. **Camera** - Currently default, needs smooth follow implementation
+2. **Data Store** - Disabled until API services enabled on Roblox
+3. **Shop** - UI visible but purchases not functional yet
 
-## License
+## 📝 License
 
-MIT - Feel free to use and modify for your own games.
+MIT - Feel free to use and modify.
 
 ---
 
-Built for the Roblox platform. Ship fast, iterate faster. 🚀
+**Built for the Roblox platform. Ship fast, iterate faster.** 🚀
+
+*Repository: https://github.com/clawchin2/roblox1.0*

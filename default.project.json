@@ -19,17 +19,14 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "Server": {
-        "$className": "Folder",
-        "GameManager": {
-          "$path": "src/ServerScriptService/Server/GameManager.lua"
-        },
-        "LevelGenerator": {
-          "$path": "src/ServerScriptService/Server/LevelGenerator.lua"
-        },
-        "MainScript": {
-          "$path": "src/ServerScriptService/Server/MainScript.lua"
-        }
+      "MainScript": {
+        "$path": "src/ServerScriptService/Server/MainScript.server.lua"
+      },
+      "GameManager": {
+        "$path": "src/ServerScriptService/Server/GameManager.server.lua"
+      },
+      "LevelGeneratorModule": {
+        "$path": "src/ServerScriptService/Server/LevelGenerator.lua"
       }
     },
     "StarterPlayer": {

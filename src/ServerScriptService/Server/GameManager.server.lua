@@ -1,18 +1,9 @@
 -- Game Manager
--- Main server controller
+-- Main server controller for players
 
 local Players = game:GetService("Players")
-local DataStoreService = game:GetService("DataStoreService")
 
-print("[GameManager] Loading...")
-
-local LevelGenerator = require(script.Parent.LevelGenerator)
-local GameConfig = require(game.ReplicatedStorage.Modules.GameConfig)
-
--- Setup level generator immediately
-print("[GameManager] Starting LevelGenerator...")
-local Generator = LevelGenerator.new()
-Generator:start()
+print("[GameManager] Initializing...")
 
 -- Handle players
 Players.PlayerAdded:Connect(function(player)
