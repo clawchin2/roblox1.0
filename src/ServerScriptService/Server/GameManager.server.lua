@@ -231,4 +231,125 @@ task.spawn(function()
     end
 end)
 
+-- Shop Events
+local ShopEvents = ReplicatedStorage:FindFirstChild("ShopEvents")
+if not ShopEvents then
+    ShopEvents = Instance.new("Folder")
+    ShopEvents.Name = "ShopEvents"
+    ShopEvents.Parent = ReplicatedStorage
+end
+
+local PurchaseRequest = ShopEvents:FindFirstChild("PurchaseRequest")
+if not PurchaseRequest then
+    PurchaseRequest = Instance.new("RemoteEvent")
+    PurchaseRequest.Name = "PurchaseRequest"
+    PurchaseRequest.Parent = ShopEvents
+end
+
+local EquipRequest = ShopEvents:FindFirstChild("EquipRequest")
+if not EquipRequest then
+    EquipRequest = Instance.new("RemoteEvent")
+    EquipRequest.Name = "EquipRequest"
+    EquipRequest.Parent = ShopEvents
+end
+
+-- Handle purchase requests
+PurchaseRequest.OnServerEvent:Connect(function(player, itemType, itemId, price)
+    print("[GameManager] Purchase request from " .. player.Name .. ": " .. itemType .. " " .. itemId .. " for " .. price)
+    
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
+    local coins = leaderstats:FindFirstChild("Coins")
+    if not coins then return end
+    
+    -- Validate price
+    local validPrice = false
+    if itemType == "trail" then
+        for _, trail in ipairs(GameConfig.SHOP_ITEMS.TRAILS) do
+            if trail.id == itemId and trail.price == price then
+                validPrice = true
+                break
+            end
+        end
+    elseif itemType == "skin" then
+        for _, skin in ipairs(GameConfig.SHOP_ITEMS.SKINS) do
+            if skin.id == itemId and skin.price == price then
+                validPrice = true
+                break
+            end
+        end
+    end
+    
+    if not validPrice then
+        warn("[GameManager] Invalid price for item: " .. itemId)
+        return
+    end
+    
+    -- Check and deduct coins
+    if coins.Value >= price then
+        coins.Value = coins.Value - price
+        print("[GameManager] " .. player.Name .. " purchased " .. itemId .. " for " .. price .. " coins")
+        
+        -- Store ownership (would use DataStore in production)
+        local data = playerData[player.UserId]
+        if data then
+            if not data.ownedItems then
+                data.ownedItems = {trails = {}, skins = {}}
+            end
+            if itemType == "trail" then
+                data.ownedItems.trails[itemId] = true
+            elseif itemType == "skin" then
+                data.ownedItems.skins[itemId] = true
+            end
+        end
+    else
+        warn("[GameManager] " .. player.Name .. " doesn't have enough coins for " .. itemId)
+    end
+end)
+
+-- Handle equip requests
+EquipRequest.OnServerEvent:Connect(function(player, itemType, itemId)
+    print("[GameManager] Equip request from " .. player.Name .. ": " .. itemType .. " " .. itemId)
+    
+    local data = playerData[player.UserId]
+    if data then
+        if not data.equipped then
+            data.equipped = {}
+        end
+        data.equipped[itemType] = itemId
+    end
+end)
+
+-- Coin collection - handle coin touch
+workspace.DescendantAdded:Connect(function(descendant)
+    if descendant.Name == "Coin" and descendant:IsA("BasePart") then
+        descendant.Touched:Connect(function(hit)
+            local char = hit:FindFirstAncestorOfClass("Model")
+            if not char then return end
+            
+            local player = Players:GetPlayerFromCharacter(char)
+            if not player then return end
+            
+            -- Only process if coin still exists
+            if not descendant or not descendant.Parent then return end
+            
+            local coinValue = descendant:GetAttribute("CoinValue") or 10
+            
+            -- Update coins
+            local leaderstats = player:FindFirstChild("leaderstats")
+            if leaderstats then
+                local coins = leaderstats:FindFirstChild("Coins")
+                if coins then
+                    coins.Value = coins.Value + coinValue
+                    print("[GameManager] " .. player.Name .. " collected coin worth " .. coinValue .. " coins")
+                end
+            end
+            
+            -- Remove coin with effect
+            descendant:Destroy()
+        end)
+    end
+end)
+
 print("[GameManager] Ready! Safety checks active.")
