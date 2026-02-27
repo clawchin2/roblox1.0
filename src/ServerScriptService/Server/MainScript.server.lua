@@ -7,14 +7,39 @@ print("[SERVER] Endless Escape Server Starting...")
 print("=" .. string.rep("=", 50))
 print("")
 
--- Wait a moment for game to initialize
-print("[SERVER] Waiting for game...")
-task.wait(1)
+task.wait(0.5)
+
+-- List what's in ServerScriptService
+print("[SERVER] Checking ServerScriptService contents...")
+for _, child in ipairs(script.Parent:GetChildren()) do
+    print("[SERVER] Found: " .. child.Name .. " (" .. child.ClassName .. ")")
+end
 
 -- Load LevelGenerator
-print("[SERVER] Loading LevelGenerator module...")
+print("[SERVER] Loading LevelGenerator...")
+local LevelGeneratorModule = script.Parent:FindFirstChild("LevelGeneratorModule")
+
+if not LevelGeneratorModule then
+    warn("[SERVER] CRITICAL: LevelGeneratorModule not found in ServerScriptService!")
+    -- Try to find it with different name
+    for _, child in ipairs(script.Parent:GetChildren()) do
+        if child.Name:lower():find("level") then
+            print("[SERVER] Found potential match: " .. child.Name)
+            LevelGeneratorModule = child
+            break
+        end
+    end
+end
+
+if not LevelGeneratorModule then
+    warn("[SERVER] Cannot find LevelGenerator at all!")
+    return
+end
+
+print("[SERVER] Found LevelGeneratorModule at: " .. LevelGeneratorModule:GetFullName())
+
 local success, LevelGenerator = pcall(function()
-    return require(script.Parent.LevelGeneratorModule)
+    return require(LevelGeneratorModule)
 end)
 
 if not success then
@@ -40,18 +65,6 @@ if not genSuccess then
 end
 
 print("[SERVER] LevelGenerator started successfully!")
-
--- Load GameManager
-print("[SERVER] Loading GameManager...")
-local gmSuccess, gmError = pcall(function()
-    require(script.Parent.GameManager)
-end)
-
-if not gmSuccess then
-    warn("[SERVER] Warning: GameManager error: " .. tostring(gmError))
-else
-    print("[SERVER] GameManager loaded!")
-end
 
 print("")
 print("=" .. string.rep("=", 50))
