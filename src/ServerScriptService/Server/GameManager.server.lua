@@ -6,6 +6,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
 local PetSystem = require(ReplicatedStorage.Modules.PetSystem)
 
+-- Create spawn platform
+local spawnPlatform = Instance.new("Part")
+spawnPlatform.Name = "SpawnPlatform"
+spawnPlatform.Size = Vector3.new(100, 1, 100)
+spawnPlatform.Position = Vector3.new(0, 10, 0)
+spawnPlatform.Anchored = true
+spawnPlatform.Color = Color3.fromRGB(100, 255, 100)
+spawnPlatform.Material = Enum.Material.Grass
+spawnPlatform.Parent = workspace
+
 -- Player data
 local playerData = {}
 
