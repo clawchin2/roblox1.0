@@ -1,41 +1,61 @@
 -- Main Server Script
 -- Initializes all server systems
 
-print("[SERVER] ==========================================")
+print("")
+print("=" .. string.rep("=", 50))
 print("[SERVER] Endless Escape Server Starting...")
-print("[SERVER] ==========================================")
+print("=" .. string.rep("=", 50))
+print("")
 
--- Load and run modules
-local success, err = pcall(function()
-    -- Load LevelGenerator first (platform generation)
-    local LevelGenerator = require(script.Parent.LevelGenerator)
-    print("[SERVER] LevelGenerator module loaded")
-    
-    -- Create and start generator
-    local generator = LevelGenerator.new()
-    generator:start()
-    print("[SERVER] LevelGenerator started!")
-    
-    -- Store for other scripts
-    _G.LevelGenerator = generator
+-- Wait a moment for game to initialize
+print("[SERVER] Waiting for game...")
+task.wait(1)
+
+-- Load LevelGenerator
+print("[SERVER] Loading LevelGenerator module...")
+local success, LevelGenerator = pcall(function()
+    return require(script.Parent.LevelGeneratorModule)
 end)
 
 if not success then
-    warn("[SERVER] FAILED to start LevelGenerator: " .. tostring(err))
-else
-    print("[SERVER] LevelGenerator running successfully!")
+    warn("[SERVER] CRITICAL ERROR: Could not load LevelGenerator!")
+    warn("[SERVER] Error: " .. tostring(LevelGenerator))
+    return
 end
 
--- Load GameManager for player handling
-local success2, err2 = pcall(function()
-    local GameManager = require(script.Parent.GameManager)
-    print("[SERVER] GameManager loaded")
+print("[SERVER] LevelGenerator loaded successfully!")
+
+-- Start generation
+print("[SERVER] Starting LevelGenerator...")
+local genSuccess, genError = pcall(function()
+    local generator = LevelGenerator.new()
+    generator:start()
+    _G.LevelGenerator = generator
 end)
 
-if not success2 then
-    warn("[SERVER] GameManager error: " .. tostring(err2))
+if not genSuccess then
+    warn("[SERVER] CRITICAL ERROR: LevelGenerator failed to start!")
+    warn("[SERVER] Error: " .. tostring(genError))
+    return
 end
 
-print("[SERVER] ==========================================")
-print("[SERVER] Server initialization complete!")
-print("[SERVER] ==========================================")
+print("[SERVER] LevelGenerator started successfully!")
+
+-- Load GameManager
+print("[SERVER] Loading GameManager...")
+local gmSuccess, gmError = pcall(function()
+    require(script.Parent.GameManager)
+end)
+
+if not gmSuccess then
+    warn("[SERVER] Warning: GameManager error: " .. tostring(gmError))
+else
+    print("[SERVER] GameManager loaded!")
+end
+
+print("")
+print("=" .. string.rep("=", 50))
+print("[SERVER] Server initialization COMPLETE!")
+print("[SERVER] Platforms should be visible in workspace!")
+print("=" .. string.rep("=", 50))
+print("")

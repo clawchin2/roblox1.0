@@ -1,18 +1,25 @@
 -- Level Generator
 -- Server-side procedural generation
 
-local Platform = require(game.ReplicatedStorage.Modules.PlatformModule)
-local GameConfig = require(game.ReplicatedStorage.Modules.GameConfig)
+print("[LevelGenerator] Module loading...")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Platform = require(ReplicatedStorage.Modules.PlatformModule)
+local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
+
+print("[LevelGenerator] Dependencies loaded")
 
 local LevelGenerator = {}
 LevelGenerator.__index = LevelGenerator
 
 function LevelGenerator.new()
+    print("[LevelGenerator] Creating new instance...")
     local self = setmetatable({}, LevelGenerator)
     self.platforms = {}
     self.currentDistance = 0
     self.lastPlatformPos = Vector3.new(0, 10, -30)
     self.active = false
+    print("[LevelGenerator] Instance created")
     return self
 end
 
@@ -50,63 +57,94 @@ function LevelGenerator:generateNextPlatform()
         newPos = newPos + Vector3.new(0, math.random(-2, 2), 0)
     end
     
-    local platform, part = Platform.CreatePlatform(platformType, newPos, self.platformFolder)
+    local success, platform, part = pcall(function()
+        return Platform.CreatePlatform(platformType, newPos, self.platformFolder)
+    end)
     
-    table.insert(self.platforms, platform)
-    self.lastPlatformPos = newPos
-    self.currentDistance = self.currentDistance + gap
-    
-    return platform
+    if success then
+        table.insert(self.platforms, platform)
+        self.lastPlatformPos = newPos
+        self.currentDistance = self.currentDistance + gap
+        return platform
+    else
+        warn("[LevelGenerator] Failed to create platform: " .. tostring(platform))
+        return nil
+    end
 end
 
 function LevelGenerator:start()
-    print("[LevelGenerator] STARTING level generation...")
+    print("[LevelGenerator] START called!")
     
     self.active = true
+    
+    -- Create folder
+    print("[LevelGenerator] Creating platform folder...")
     self.platformFolder = Instance.new("Folder")
     self.platformFolder.Name = "GeneratedLevel"
     self.platformFolder.Parent = workspace
+    print("[LevelGenerator] Folder created: " .. self.platformFolder:GetFullName())
     
     -- Generate platforms
-    print("[LevelGenerator] Generating initial platforms...")
+    print("[LevelGenerator] Generating 25 initial platforms...")
+    local count = 0
     for i = 1, 25 do
-        self:generateNextPlatform()
+        local platform = self:generateNextPlatform()
+        if platform then
+            count = count + 1
+        end
+        -- Small delay to prevent lag
+        if i % 5 == 0 then
+            task.wait(0.01)
+        end
     end
     
-    print("[LevelGenerator] Generated " .. tostring(#self.platforms) .. " platforms!")
+    print("[LevelGenerator] Successfully created " .. count .. " platforms!")
+    print("[LevelGenerator] Last platform at: " .. tostring(self.lastPlatformPos))
     
-    -- Keep generating
+    -- Continuous generation
     task.spawn(function()
+        print("[LevelGenerator] Starting continuous generation loop...")
         while self.active do
             task.wait(1)
             
-            local furthestZ = -math.huge
+            local furthestZ = 0
+            local playerCount = 0
+            
             for _, player in ipairs(game.Players:GetPlayers()) do
                 if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                     local z = player.Character.HumanoidRootPart.Position.Z
                     if z < furthestZ then
                         furthestZ = z
                     end
+                    playerCount = playerCount + 1
                 end
             end
             
-            -- Generate more if needed
-            while self.lastPlatformPos.Z > furthestZ - 150 do
+            -- Generate more platforms ahead of players
+            while self.lastPlatformPos.Z > furthestZ - 100 do
                 self:generateNextPlatform()
             end
         end
     end)
+    
+    print("[LevelGenerator] FULLY STARTED AND RUNNING!")
 end
 
 function LevelGenerator:stop()
+    print("[LevelGenerator] Stopping...")
     self.active = false
     for _, platform in ipairs(self.platforms) do 
-        if platform.destroy then platform:destroy() end 
+        if platform and platform.destroy then 
+            platform:destroy() 
+        end 
     end
     self.platforms = {}
     if self.platformFolder then 
         self.platformFolder:Destroy() 
     end
+    print("[LevelGenerator] Stopped")
 end
+
+print("[LevelGenerator] Module fully loaded and ready!")
 
 return LevelGenerator

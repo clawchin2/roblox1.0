@@ -1,6 +1,8 @@
 -- Platform Module
 -- Handles all platform types with collision and behavior logic
 
+print("[PlatformModule] Loading...")
+
 local Platform = {}
 Platform.__index = Platform
 
@@ -163,5 +165,7 @@ function Platform.CreatePlatform(platformType, position, parent)
     if position then part.Position = position end
     return platform, part
 end
+
+print("[PlatformModule] Loaded successfully!")
 
 return Platform
