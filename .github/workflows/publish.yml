@@ -4,15 +4,6 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deploy to'
-        required: true
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - production
 
 jobs:
   build-and-publish:
@@ -55,23 +46,3 @@ jobs:
         name: EndlessEscape-Build
         path: EndlessEscape.rbxl
         retention-days: 7
-
-  release:
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
-    
-    steps:
-    - name: Download Build Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: EndlessEscape-Build
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: EndlessEscape.rbxl
-        generate_release_notes: true
-        tag_name: v${{ github.run_number }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
