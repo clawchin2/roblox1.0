@@ -28,6 +28,6 @@ jobs:
     - name: Upload .rbxl artifact
       uses: actions/upload-artifact@v4
       with:
-        name: EndlessEscape-Game
+        name: EndlessEscape-Game-v2
         path: EndlessEscape.rbxl
         retention-days: 30
