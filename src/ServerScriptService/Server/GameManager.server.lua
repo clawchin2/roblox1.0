@@ -1,35 +1,29 @@
--- Game Manager - FIXED VERSION
--- Server controller with working coins, distance, and backgrounds
+-- Game Manager - ULTRA DEBUG VERSION
+-- With extensive logging to find the issue
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-print("[GameManager] Initializing...")
+print("[GameManager] ==========================================")
+print("[GameManager] INITIALIZING")
+print("[GameManager] ==========================================")
 
--- Get modules
 local GameConfig = require(ReplicatedStorage.Modules.GameConfig)
-
--- Safety configuration
-local SAFETY_CONFIG = {
-    FALL_THRESHOLD = -50,
-    CHECK_INTERVAL = 0.5,
-    TELEPORT_OFFSET = Vector3.new(0, 5, 0),
-    MAX_FALL_DISTANCE = -100,
-}
 
 -- Player data
 local playerData = {}
 
 -- Initialize player
 local function initPlayer(player)
+    print("[GameManager] initPlayer called for " .. player.Name)
+    
     playerData[player.UserId] = {
         startZ = nil,
         furthestDistance = 0,
-        coins = 0,
     }
     
-    -- Create leaderstats
+    -- Create leaderstats IMMEDIATELY
     local leaderstats = Instance.new("Folder")
     leaderstats.Name = "leaderstats"
     
@@ -46,45 +40,53 @@ local function initPlayer(player)
     leaderstats.Parent = player
     
     print("[GameManager] Leaderstats created for " .. player.Name)
+    print("[GameManager] Score value: " .. score.Value)
+    print("[GameManager] Coins value: " .. coins.Value)
 end
 
--- Setup character tracking
+-- Setup character
 local function setupCharacter(player, character)
+    print("[GameManager] setupCharacter for " .. player.Name)
+    
     local data = playerData[player.UserId]
-    if not data then return end
+    if not data then 
+        print("[GameManager] No data for player!")
+        return 
+    end
     
-    local hrp = character:WaitForChild("HumanoidRootPart")
-    local humanoid = character:WaitForChild("Humanoid")
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if not hrp then
+        print("[GameManager] HumanoidRootPart not found!")
+        return
+    end
     
-    -- Set start Z position
     data.startZ = hrp.Position.Z
-    print("[GameManager] " .. player.Name .. " start Z: " .. data.startZ)
-    
-    -- Handle death
-    humanoid.Died:Connect(function()
-        task.delay(3, function()
-            if player.Parent then
-                player:LoadCharacter()
-            end
-        end)
-    end)
+    print("[GameManager] Start Z set: " .. data.startZ)
 end
 
 -- Players joining
 Players.PlayerAdded:Connect(function(player)
-    print("[GameManager] Player joined: " .. player.Name)
+    print("[GameManager] PlayerAdded: " .. player.Name)
     initPlayer(player)
     
+    if player.Character then
+        print("[GameManager] Character already exists, setting up...")
+        setupCharacter(player, player.Character)
+    end
+    
     player.CharacterAdded:Connect(function(char)
+        print("[GameManager] CharacterAdded for " .. player.Name)
         setupCharacter(player, char)
     end)
 end)
 
--- Main update loop - Distance tracking
-print("[GameManager] Starting distance tracking...")
+-- DISTANCE TRACKING
+print("[GameManager] Starting distance tracking loop...")
 task.spawn(function()
+    local loopCount = 0
     while true do
-        task.wait(0.1) -- Update every 0.1 seconds
+        task.wait(0.5)
+        loopCount = loopCount + 1
         
         for _, player in ipairs(Players:GetPlayers()) do
             local data = playerData[player.UserId]
@@ -97,38 +99,35 @@ task.spawn(function()
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then continue end
             
-            -- Calculate distance
             local currentZ = hrp.Position.Z
             local distance = data.startZ - currentZ
             
-            if distance > 0 then
-                data.furthestDistance = math.max(data.furthestDistance, distance)
+            if distance > 0 and distance > data.furthestDistance then
+                data.furthestDistance = distance
                 
-                -- Update leaderstats
                 local leaderstats = player:FindFirstChild("leaderstats")
                 if leaderstats then
                     local score = leaderstats:FindFirstChild("Score")
                     if score then
-                        score.Value = math.floor(data.furthestDistance)
+                        score.Value = math.floor(distance)
+                        if loopCount % 10 == 0 then -- Print every 5 seconds
+                            print("[GameManager] " .. player.Name .. " distance: " .. math.floor(distance) .. "m")
+                        end
                     end
                 end
-            end
-            
-            -- Safety check - teleport if fell
-            if hrp.Position.Y < SAFETY_CONFIG.FALL_THRESHOLD then
-                hrp.CFrame = CFrame.new(0, 15, 0)
-                print("[GameManager] Teleported " .. player.Name .. " back to start")
             end
         end
     end
 end)
 
--- COIN COLLECTION - Direct touch handler
+-- COIN COLLECTION
 print("[GameManager] Setting up coin collection...")
 
 local function setupCoin(coin)
     if coin:GetAttribute("CoinSetup") then return end
     coin:SetAttribute("CoinSetup", true)
+    
+    print("[GameManager] Setting up coin: " .. coin:GetFullName())
     
     coin.Touched:Connect(function(hit)
         local char = hit:FindFirstAncestorOfClass("Model")
@@ -139,62 +138,46 @@ local function setupCoin(coin)
         
         if not coin or not coin.Parent then return end
         
-        -- Get value
         local value = coin:GetAttribute("CoinValue") or 10
         
-        -- Update coins
+        print("[GameManager] Coin touched by " .. player.Name .. " value: " .. value)
+        
         local leaderstats = player:FindFirstChild("leaderstats")
         if leaderstats then
             local coins = leaderstats:FindFirstChild("Coins")
             if coins then
                 coins.Value = coins.Value + value
-                print("[GameManager] " .. player.Name .. " collected coin: " .. value .. " (Total: " .. coins.Value .. ")")
+                print("[GameManager] " .. player.Name .. " now has " .. coins.Value .. " coins")
+            else
+                print("[GameManager] ERROR: Coins leaderstat not found!")
             end
+        else
+            print("[GameManager] ERROR: Leaderstats not found!")
         end
         
-        -- Destroy with effect
         coin:Destroy()
     end)
 end
 
 -- Setup existing coins
+local existingCoins = 0
 for _, obj in ipairs(workspace:GetDescendants()) do
     if obj.Name == "Coin" and obj:IsA("BasePart") then
         setupCoin(obj)
+        existingCoins = existingCoins + 1
     end
 end
+print("[GameManager] Set up " .. existingCoins .. " existing coins")
 
--- Setup new coins as they're created
+-- Setup new coins
 workspace.DescendantAdded:Connect(function(descendant)
     if descendant.Name == "Coin" and descendant:IsA("BasePart") then
-        task.wait(0.1) -- Small delay to ensure coin is fully created
+        print("[GameManager] New coin created: " .. descendant:GetFullName())
+        task.wait(0.1)
         setupCoin(descendant)
     end
 end)
 
--- BACKGROUND MANAGER START
-print("[GameManager] Starting BackgroundManager...")
-local bgModule = script.Parent:FindFirstChild("BackgroundManager")
-if bgModule then
-    local success, BackgroundManager = pcall(function()
-        return require(bgModule)
-    end)
-    if success and BackgroundManager then
-        local bgSuccess, bgErr = pcall(function()
-            local bg = BackgroundManager.new()
-            bg:start()
-            _G.BackgroundManager = bg
-        end)
-        if bgSuccess then
-            print("[GameManager] BackgroundManager started!")
-        else
-            warn("[GameManager] BackgroundManager failed: " .. tostring(bgErr))
-        end
-    else
-        warn("[GameManager] Could not load BackgroundManager: " .. tostring(BackgroundManager))
-    end
-else
-    warn("[GameManager] BackgroundManager not found")
-end
-
-print("[GameManager] Ready! Distance tracking and coins active.")
+print("[GameManager] ==========================================")
+print("[GameManager] READY")
+print("[GameManager] ==========================================")
