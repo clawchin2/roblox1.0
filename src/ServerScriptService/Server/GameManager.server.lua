@@ -1,5 +1,5 @@
 -- Game Manager
--- Main server controller with safety mechanics and checkpoint system
+-- Main server controller with safety mechanics, checkpoint system, and death tracking
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,12 +7,31 @@ local RunService = game:GetService("RunService")
 
 print("[GameManager] Initializing...")
 
+-- Create RemoteEvents for client communication
+local remotes = Instance.new("Folder")
+remotes.Name = "GameRemotes"
+remotes.Parent = ReplicatedStorage
+
+local playerDiedEvent = Instance.new("RemoteEvent")
+playerDiedEvent.Name = "PlayerDied"
+playerDiedEvent.Parent = remotes
+
+local requestRespawnEvent = Instance.new("RemoteEvent")
+requestRespawnEvent.Name = "RequestRespawn"
+requestRespawnEvent.Parent = remotes
+
 -- Safety configuration
 local SAFETY_CONFIG = {
     FALL_THRESHOLD = -50,           -- Teleport if below Y = -50
     CHECK_INTERVAL = 0.5,           -- Check every 0.5 seconds
     TELEPORT_OFFSET = Vector3.new(0, 5, 0),  -- Spawn slightly above checkpoint
     MAX_FALL_DISTANCE = -100,       -- Emergency respawn threshold
+}
+
+-- Monetization delay settings
+local MONETIZATION_CONFIG = {
+    MIN_DEATHS_FOR_SHOP = 3,        -- Show shop after 3 deaths
+    MIN_DISTANCE_FOR_SHOP = 100,    -- Or after reaching 100m
 }
 
 -- Player data storage
@@ -27,6 +46,8 @@ local function initPlayerData(player)
         currentDistance = 0,           -- Current distance
         platformsTouched = {},         -- Track touched platforms
         isFalling = false,             -- Falling state
+        deathCount = 0,                -- Total deaths
+        deathsThisRun = 0,             -- Deaths in current session
     }
 end
 
@@ -63,6 +84,47 @@ local function teleportToCheckpoint(player)
         
         print("[GameManager] Teleported " .. player.Name .. " to checkpoint at " .. tostring(checkpointPos))
     end
+end
+
+-- Check if player should see shop or encouraging message
+local function shouldShowShop(player)
+    local data = playerData[player.UserId]
+    if not data then return false end
+    
+    -- Show shop if player has died 3+ times OR reached 100m+
+    local hasEnoughDeaths = data.deathCount >= MONETIZATION_CONFIG.MIN_DEATHS_FOR_SHOP
+    local hasEnoughDistance = data.furthestDistance >= MONETIZATION_CONFIG.MIN_DISTANCE_FOR_SHOP
+    
+    return hasEnoughDeaths or hasEnoughDistance
+end
+
+-- Handle player death
+local function handlePlayerDeath(player, distance)
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    -- Increment death counters
+    data.deathCount = data.deathCount + 1
+    data.deathsThisRun = data.deathsThisRun + 1
+    
+    -- Update furthest distance if needed
+    if distance > data.furthestDistance then
+        data.furthestDistance = distance
+    end
+    
+    -- Determine what to show on death screen
+    local showShop = shouldShowShop(player)
+    
+    print("[GameManager] " .. player.Name .. " died! Death count: " .. data.deathCount .. 
+          ", Furthest: " .. math.floor(data.furthestDistance) .. "m, ShowShop: " .. tostring(showShop))
+    
+    -- Fire event to client with death info
+    playerDiedEvent:FireClient(player, {
+        distance = math.floor(distance),
+        furthestDistance = math.floor(data.furthestDistance),
+        deathCount = data.deathCount,
+        showShop = showShop
+    })
 end
 
 -- Safety check - monitor player fall
@@ -145,6 +207,9 @@ local function setupPlatformDetection(player, character)
     
     -- Handle death
     humanoid.Died:Connect(function()
+        local currentDist = getPlayerDistance(player)
+        handlePlayerDeath(player, currentDist)
+        
         if data.touchConnection then
             data.touchConnection:Disconnect()
         end
@@ -157,6 +222,12 @@ local function setupPlatformDetection(player, character)
         end)
     end)
 end
+
+-- Handle respawn request from client
+requestRespawnEvent.OnServerEvent:Connect(function(player)
+    print("[GameManager] Respawn requested by " .. player.Name)
+    player:LoadCharacter()
+end)
 
 -- Handle players
 Players.PlayerAdded:Connect(function(player)
