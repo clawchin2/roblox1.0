@@ -17,9 +17,11 @@ function LevelGenerator.new()
     local self = setmetatable({}, LevelGenerator)
     self.platforms = {}
     self.currentDistance = 0
-    self.lastPlatformPos = Vector3.new(0, 10, -30)
+    -- Start RIGHT at edge of baseplate (baseplate is 50x50, so edge is at z = -25)
+    -- First platform should be VERY close and easy to reach
+    self.lastPlatformPos = Vector3.new(0, 10, -20) -- Only 5 studs from baseplate edge
     self.active = false
-    print("[LevelGenerator] Instance created")
+    print("[LevelGenerator] Instance created, starting position: " .. tostring(self.lastPlatformPos))
     return self
 end
 
@@ -45,12 +47,34 @@ function LevelGenerator:selectPlatformType(settings)
     return Platform.Types.STATIC
 end
 
-function LevelGenerator:generateNextPlatform()
+function LevelGenerator:generateNextPlatform(gapOverride)
     local settings = self:getDifficultySettings(self.currentDistance)
-    local gap = math.random(settings.gapRange[1], settings.gapRange[2])
+    
+    -- Use small gap for first few platforms (tutorial section)
+    local gap
+    if gapOverride then
+        gap = gapOverride
+    elseif #self.platforms < 3 then
+        -- First 3 platforms: very close together (easy tutorial)
+        gap = 6 -- Small jump
+    elseif #self.platforms < 6 then
+        -- Next 3: medium
+        gap = 8
+    else
+        -- Normal difficulty
+        gap = math.random(settings.gapRange[1], settings.gapRange[2])
+    end
+    
     local platformType = self:selectPlatformType(settings)
     
-    local xOffset = math.random(-5, 5)
+    -- Keep first platforms relatively straight (small x offset)
+    local xOffset
+    if #self.platforms < 5 then
+        xOffset = math.random(-2, 2) -- Almost straight line
+    else
+        xOffset = math.random(-5, 5)
+    end
+    
     local newPos = self.lastPlatformPos + Vector3.new(xOffset, 0, -gap)
     
     if self.currentDistance > 200 then
@@ -61,10 +85,11 @@ function LevelGenerator:generateNextPlatform()
         return Platform.CreatePlatform(platformType, newPos, self.platformFolder)
     end)
     
-    if success then
+    if success and platform then
         table.insert(self.platforms, platform)
         self.lastPlatformPos = newPos
         self.currentDistance = self.currentDistance + gap
+        print("[LevelGenerator] Created platform #" .. #self.platforms .. " at " .. tostring(newPos) .. " (gap: " .. gap .. ")")
         return platform
     else
         warn("[LevelGenerator] Failed to create platform: " .. tostring(platform))
@@ -84,15 +109,26 @@ function LevelGenerator:start()
     self.platformFolder.Parent = workspace
     print("[LevelGenerator] Folder created: " .. self.platformFolder:GetFullName())
     
-    -- Generate platforms
-    print("[LevelGenerator] Generating 25 initial platforms...")
+    -- Create a STARTING BRIDGE from baseplate to first platform
+    print("[LevelGenerator] Creating starting bridge...")
+    local bridge = Instance.new("Part")
+    bridge.Name = "StartBridge"
+    bridge.Size = Vector3.new(8, 1, 6)
+    bridge.Position = Vector3.new(0, 10, -17) -- Between baseplate (z=-25 edge) and first platform
+    bridge.Anchored = true
+    bridge.Color = Color3.fromRGB(100, 200, 100) -- Slightly lighter green
+    bridge.Material = Enum.Material.SmoothPlastic
+    bridge.Parent = self.platformFolder
+    print("[LevelGenerator] Bridge created at " .. tostring(bridge.Position))
+    
+    -- Generate platforms with small gaps for tutorial
+    print("[LevelGenerator] Generating initial platforms...")
     local count = 0
     for i = 1, 25 do
         local platform = self:generateNextPlatform()
         if platform then
             count = count + 1
         end
-        -- Small delay to prevent lag
         if i % 5 == 0 then
             task.wait(0.01)
         end
@@ -108,19 +144,15 @@ function LevelGenerator:start()
             task.wait(1)
             
             local furthestZ = 0
-            local playerCount = 0
-            
             for _, player in ipairs(game.Players:GetPlayers()) do
                 if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                     local z = player.Character.HumanoidRootPart.Position.Z
                     if z < furthestZ then
                         furthestZ = z
                     end
-                    playerCount = playerCount + 1
                 end
             end
             
-            -- Generate more platforms ahead of players
             while self.lastPlatformPos.Z > furthestZ - 100 do
                 self:generateNextPlatform()
             end
