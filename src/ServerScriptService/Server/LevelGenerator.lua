@@ -1,4 +1,4 @@
--- LevelGenerator - FIXED with proper gaps
+-- LevelGenerator - FIXED with guaranteed gaps
 print("[LevelGenerator] Loading...")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,16 +11,15 @@ LevelGenerator.__index = LevelGenerator
 function LevelGenerator.new()
     local self = setmetatable({}, LevelGenerator)
     self.platforms = {}
-    self.lastPos = GameConfig.SPAWN_POSITION
+    self.lastPos = nil
     self.platformFolder = nil
-    self.initialized = false
     return self
 end
 
 function LevelGenerator:start()
     print("[LevelGenerator] Starting...")
     
-    -- Clear any existing
+    -- Clear existing
     if self.platformFolder then
         self.platformFolder:Destroy()
     end
@@ -29,72 +28,81 @@ function LevelGenerator:start()
     self.platformFolder.Name = "Platforms"
     self.platformFolder.Parent = workspace
     
-    -- Reset position
+    -- Start position
     self.lastPos = GameConfig.SPAWN_POSITION
+    
+    -- Clear platforms table
     self.platforms = {}
     
-    -- Bigger starting platform (40x40)
-    local start = Platform.CreatePlatform("static", GameConfig.SPAWN_POSITION, self.platformFolder)
-    start.Size = Vector3.new(40, 1, 40)
-    start.Color = Color3.fromRGB(100, 255, 100)
+    -- Create starting platform (bigger)
+    local start = Instance.new("Part")
     start.Name = "StartPlatform"
+    start.Size = Vector3.new(50, 1, 50)
+    start.Position = GameConfig.SPAWN_POSITION
+    start.Anchored = true
+    start.Color = Color3.fromRGB(100, 255, 100)
+    start.Material = Enum.Material.SmoothPlastic
+    start.Parent = self.platformFolder
     
-    -- Generate first 20 platforms with PROPER gaps
-    for i = 1, 20 do
-        self:generateNext(i)
+    print("[LevelGenerator] Start platform at " .. tostring(self.lastPos))
+    
+    -- Generate 25 platforms with CLEAR gaps
+    for i = 1, 25 do
+        self:generatePlatform(i)
     end
     
-    self.initialized = true
-    print("[LevelGenerator] Generated 20 platforms, ready!")
+    print("[LevelGenerator] Generated " .. #self.platforms .. " platforms")
+    
+    -- Continuous generation - faster
+    task.spawn(function()
+        while true do
+            task.wait(0.3)
+            if #self.platforms < 50 then
+                self:generatePlatform(#self.platforms + 1)
+            end
+        end
+    end)
 end
 
-function LevelGenerator:generateNext(index)
-    -- Fixed 8-stud gap (jumpable but not too easy)
+function LevelGenerator:generatePlatform(index)
+    -- FIXED: Explicit 8-stud gap forward
     local gap = 8
+    local xOffset = math.random(-3, 3)
     
-    -- Small random x offset for variety
-    local xOffset = math.random(-2, 2)
+    -- Move position forward (negative Z is forward in Roblox)
+    local newZ = self.lastPos.Z - gap
+    local newX = self.lastPos.X + xOffset
+    local newPos = Vector3.new(newX, self.lastPos.Y, newZ)
     
-    -- Move forward (negative Z is forward)
-    self.lastPos = self.lastPos + Vector3.new(xOffset, 0, -gap)
+    self.lastPos = newPos
     
-    local platform = Platform.CreatePlatform("static", self.lastPos, self.platformFolder)
+    -- Create platform
+    local platform = Instance.new("Part")
     platform.Name = "Platform_" .. index
+    platform.Size = Vector3.new(12, 1, 12)
+    platform.Position = newPos
+    platform.Anchored = true
+    platform.CanCollide = true
     
-    -- First few platforms are easier (wider)
+    -- Color based on index
     if index <= 5 then
-        platform.Size = Vector3.new(14, 1, 14)
-        platform.Color = Color3.fromRGB(120, 200, 120)
+        platform.Color = Color3.fromRGB(150, 255, 150) -- Easy (greenish)
+    elseif index <= 10 then
+        platform.Color = Color3.fromRGB(150, 200, 255) -- Medium (blueish)
+    else
+        platform.Color = Color3.fromRGB(200, 200, 200) -- Normal (gray)
     end
+    
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = self.platformFolder
     
     table.insert(self.platforms, platform)
     
-    -- Keep 50 platforms
-    if #self.platforms > 50 then
+    -- Remove old platforms to keep count manageable
+    if #self.platforms > 60 then
         local old = table.remove(self.platforms, 1)
         if old then old:Destroy() end
     end
-end
-
--- Reset everything for respawn
-function LevelGenerator:reset()
-    print("[LevelGenerator] Resetting...")
-    
-    -- Clear all platforms
-    for _, p in ipairs(self.platforms) do
-        if p then p:Destroy() end
-    end
-    self.platforms = {}
-    
-    -- Reset position to spawn
-    self.lastPos = GameConfig.SPAWN_POSITION
-    
-    -- Regenerate
-    for i = 1, 20 do
-        self:generateNext(i)
-    end
-    
-    print("[LevelGenerator] Reset complete")
 end
 
 return LevelGenerator
