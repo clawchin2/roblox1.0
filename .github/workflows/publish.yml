@@ -1,0 +1,118 @@
+name: Build and Publish to Roblox
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
+
+env:
+  ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
+  ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
+  ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rojo
+      run: |
+        curl -L https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.tar.gz | tar xz
+        sudo mv rojo /usr/local/bin/
+        rojo --version
+    
+    - name: Build Place File
+      run: |
+        rojo build -o EndlessEscape.rbxl
+        ls -la EndlessEscape.rbxl
+    
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: EndlessEscape-Build
+        path: EndlessEscape.rbxl
+        retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: EndlessEscape-Build
+    
+    - name: Publish to Roblox (Open Cloud)
+      run: |
+        # Install rbxcloud for publishing
+        curl -L https://github.com/SeaDve/rbxcloud/releases/download/v0.8.0/rbxcloud-x86_64-unknown-linux-gnu.tar.gz | tar xz
+        sudo mv rbxcloud /usr/local/bin/
+        
+        # Publish place file using Open Cloud API
+        rbxcloud experience publish \
+          --api-key "$ROBLOX_API_KEY" \
+          --universe-id "$ROBLOX_UNIVERSE_ID" \
+          --place-id "$ROBLOX_PLACE_ID" \
+          --version-type "Published" \
+          --filename "EndlessEscape.rbxl"
+        
+        echo "✅ Published to Roblox successfully!"
+    
+    - name: Get Version Info
+      run: |
+        echo "Version: ${{ github.sha }}"
+        echo "Branch: ${{ github.ref }}"
+        echo "Author: ${{ github.actor }}"
+        echo "Message: ${{ github.event.head_commit.message }}"
+
+  release:
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
+    
+    steps:
+    - name: Download Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: EndlessEscape-Build
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: EndlessEscape.rbxl
+        generate_release_notes: true
+        tag_name: v${{ github.run_number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Notify Discord
+      if: secrets.DISCORD_WEBHOOK != ''
+      run: |
+        curl -X POST "$DISCORD_WEBHOOK" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "embeds": [{
+              "title": "🎮 Endless Escape Updated",
+              "description": "New version published to Roblox!",
+              "color": 65280,
+              "fields": [
+                {"name": "Version", "value": "v${{ github.run_number }}", "inline": true},
+                {"name": "Commit", "value": "${{ github.sha }}".substring(0,7), "inline": true}
+              ],
+              "timestamp": "'$(date -Iseconds)'"
+            }]
+          }'

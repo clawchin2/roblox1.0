@@ -1,0 +1,83 @@
+{
+  "name": "EndlessEscape",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Modules": {
+        "$className": "Folder",
+        "PlatformModule": {
+          "$path": "src/ReplicatedStorage/Modules/PlatformModule.lua"
+        },
+        "GameConfig": {
+          "$path": "src/ReplicatedStorage/Modules/GameConfig.lua"
+        },
+        "Utils": {
+          "$path": "src/ReplicatedStorage/Modules/Utils.lua"
+        }
+      },
+      "Events": {
+        "$className": "Folder",
+        "GameEvents": {
+          "$className": "Folder",
+          "PlayerDied": {
+            "$className": "RemoteEvent"
+          },
+          "CheckpointReached": {
+            "$className": "RemoteEvent"
+          },
+          "GameStart": {
+            "$className": "RemoteEvent"
+          }
+        }
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Server": {
+        "$path": "src/ServerScriptService/Server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Client": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/Client"
+        }
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$path": "src/StarterGui"
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Position": [0, 10, 0],
+          "Neutral": true
+        }
+      },
+      "Lobby": {
+        "$className": "Folder",
+        "$path": "src/Workspace/Lobby"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "Future",
+        "Brightness": 2,
+        "GlobalShadows": true
+      }
+    },
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "LoadingScreen": {
+        "$path": "src/ReplicatedFirst/LoadingScreen.lua"
+      }
+    }
+  }
+}
