@@ -1,74 +1,37 @@
--- Main Server Script
--- Initializes all server systems
+-- Main Server Script - Simplified
+-- Just starts LevelGenerator
 
-print("")
-print("=" .. string.rep("=", 50))
-print("[SERVER] Endless Escape Server Starting...")
-print("=" .. string.rep("=", 50))
-print("")
+print("[MainScript] Starting...")
 
 task.wait(0.5)
 
--- List what's in ServerScriptService
-print("[SERVER] Checking ServerScriptService contents...")
-for _, child in ipairs(script.Parent:GetChildren()) do
-    print("[SERVER] Found: " .. child.Name .. " (" .. child.ClassName .. ")")
-end
-
 -- Load LevelGenerator
-print("[SERVER] Loading LevelGenerator...")
-local LevelGeneratorModule = script.Parent:FindFirstChild("LevelGeneratorModule")
-
-if not LevelGeneratorModule then
-    warn("[SERVER] CRITICAL: LevelGeneratorModule not found in ServerScriptService!")
-    -- Try to find it with different name
-    for _, child in ipairs(script.Parent:GetChildren()) do
-        if child.Name:lower():find("level") then
-            print("[SERVER] Found potential match: " .. child.Name)
-            LevelGeneratorModule = child
-            break
-        end
-    end
-end
-
-if not LevelGeneratorModule then
-    warn("[SERVER] Cannot find LevelGenerator at all!")
+local levelModule = script.Parent:FindFirstChild("LevelGeneratorModule")
+if not levelModule then
+    warn("[MainScript] LevelGeneratorModule not found!")
     return
 end
 
-print("[SERVER] Found LevelGeneratorModule at: " .. LevelGeneratorModule:GetFullName())
-
 local success, LevelGenerator = pcall(function()
-    return require(LevelGeneratorModule)
+    return require(levelModule)
 end)
 
 if not success then
-    warn("[SERVER] CRITICAL ERROR: Could not load LevelGenerator!")
-    warn("[SERVER] Error: " .. tostring(LevelGenerator))
+    warn("[MainScript] Could not load LevelGenerator: " .. tostring(LevelGenerator))
     return
 end
 
-print("[SERVER] LevelGenerator loaded successfully!")
-
--- Start generation
-print("[SERVER] Starting LevelGenerator...")
-local genSuccess, genError = pcall(function()
+-- Start
+local genSuccess, genErr = pcall(function()
     local generator = LevelGenerator.new()
     generator:start()
     _G.LevelGenerator = generator
 end)
 
-if not genSuccess then
-    warn("[SERVER] CRITICAL ERROR: LevelGenerator failed to start!")
-    warn("[SERVER] Error: " .. tostring(genError))
-    return
+if genSuccess then
+    print("[MainScript] LevelGenerator started successfully!")
+else
+    warn("[MainScript] LevelGenerator failed: " .. tostring(genErr))
 end
 
-print("[SERVER] LevelGenerator started successfully!")
-
-print("")
-print("=" .. string.rep("=", 50))
-print("[SERVER] Server initialization COMPLETE!")
-print("[SERVER] Platforms should be visible in workspace!")
-print("=" .. string.rep("=", 50))
-print("")
+print("[MainScript] Complete")

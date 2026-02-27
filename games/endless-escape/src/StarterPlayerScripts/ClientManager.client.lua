@@ -11,6 +11,7 @@ local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local SoundManager = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("SoundManager"))
 
 -- Wait for remote events
 local GameEvents = ReplicatedStorage:WaitForChild("GameEvents")
@@ -367,6 +368,9 @@ end)
 DistanceUpdateEvent.OnClientEvent:Connect(function(distance: number)
 	currentDistance = distance
 	distLabel.Text = tostring(math.floor(distance)) .. "m"
+	
+	-- Check for milestone sounds
+	SoundManager:CheckMilestones(distance)
 end)
 
 -- Death screen
@@ -375,6 +379,9 @@ DeathScreenDataEvent.OnClientEvent:Connect(function(context)
 	deathFrame.Visible = true
 	hudFrame.Visible = false
 	isInRun = false
+	
+	-- Reset milestone tracking for next run
+	SoundManager:ResetMilestones()
 
 	deathDistLabel.Text = "Distance: " .. tostring(math.floor(context.distance)) .. "m"
 	
@@ -564,4 +571,7 @@ local getBalance = EconomyEvents:WaitForChild("GetBalance") :: RemoteFunction
 coins = getBalance:InvokeServer()
 coinLabel.Text = "🪙 " .. tostring(coins)
 
-print("[ClientManager] UI initialized")
+-- Initialize SoundManager (client mode)
+SoundManager:Init(false) -- false = client mode
+
+print("[ClientManager] UI initialized with SoundManager")

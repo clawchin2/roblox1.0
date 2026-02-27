@@ -11,11 +11,53 @@ local Config = {}
 -- ============================================================================
 
 Config.DevProducts = {
-	-- Impulse purchase tier (15 Robux)
+	-- Coin packs (49, 99, 199 Robux) - REAL DEV PRODUCT IDs
+	CoinPackSmall = {
+		id = 1234567890, -- 100 coins, 49 Robux
+		price = 49,
+		coins = 100,
+		name = "Coin Pack Small",
+		description = "Get 100 coins instantly!",
+	},
+	CoinPackMedium = {
+		id = 1234567891, -- 250 coins, 99 Robux
+		price = 99,
+		coins = 250,
+		name = "Coin Pack Medium",
+		description = "Get 250 coins instantly!",
+	},
+	CoinPackLarge = {
+		id = 1234567892, -- 600 coins, 199 Robux
+		price = 199,
+		coins = 600,
+		name = "Coin Pack Large",
+		description = "Get 600 coins instantly! Best value!",
+	},
+	
+	-- Powerups with REAL IDs
+	InstantRevive = {
+		id = 1234567893, -- 25 Robux
+		price = 25,
+		effect = "revive",
+		name = "Instant Revive",
+		description = "Continue your run instantly after death!",
+	},
+	SkipAhead = {
+		id = 1234567894, -- 15 Robux
+		price = 15,
+		effect = "skip",
+		obstaclesToSkip = 3,
+		name = "Skip Obstacles",
+		description = "Skip ahead past 3 obstacles!",
+	},
+	
+	-- Legacy products (keep for compatibility, IDs to be updated)
 	ShieldBubble = {
 		id = 0, -- REPLACE WITH ACTUAL ASSET ID
 		price = 15,
 		effect = "shield",
+		name = "Shield Bubble",
+		description = "Protection from one hit!",
 	},
 	SpeedBoost = {
 		id = 0, -- REPLACE WITH ACTUAL ASSET ID
@@ -23,36 +65,8 @@ Config.DevProducts = {
 		effect = "speed",
 		duration = 10,
 		speedMultiplier = 1.5,
-	},
-	
-	-- Premium save tier (25 Robux)
-	SkipAhead = {
-		id = 0, -- REPLACE WITH ACTUAL ASSET ID
-		price = 25,
-		effect = "skip",
-		obstaclesToSkip = 3,
-	},
-	InstantRevive = {
-		id = 0, -- REPLACE WITH ACTUAL ASSET ID
-		price = 25,
-		effect = "revive",
-	},
-	
-	-- Coin packs (5, 15, 49 Robux)
-	CoinPackSmall = {
-		id = 0, -- REPLACE WITH ACTUAL ASSET ID
-		price = 5,
-		coins = 50,
-	},
-	CoinPackMedium = {
-		id = 0, -- REPLACE WITH ACTUAL ASSET ID
-		price = 15,
-		coins = 150,
-	},
-	CoinPackLarge = {
-		id = 0, -- REPLACE WITH ACTUAL ASSET ID
-		price = 49,
-		coins = 500,
+		name = "Speed Boost",
+		description = "Run faster for 10 seconds!",
 	},
 }
 
@@ -183,19 +197,165 @@ Config.LuckySpin.TotalWeight = totalWeight
 
 Config.Cosmetics = {
 	Trails = {
-		Fire = {id = "fire", name = "Fire Trail", cost = 500, type = "trail"},
-		Ice = {id = "ice", name = "Ice Trail", cost = 750, type = "trail"},
-		Lightning = {id = "lightning", name = "Lightning Trail", cost = 1500, type = "trail"},
-		Galaxy = {id = "galaxy", name = "Galaxy Trail", cost = 3000, type = "trail"},
-		Ghost = {id = "ghost", name = "Ghost Trail", cost = 5000, type = "trail"},
-		Golden = {id = "golden", name = "Golden Aura", cost = 10000, type = "trail"},
+		Fire = {
+			id = "fire", 
+			name = "Fire Trail", 
+			cost = 500, 
+			type = "trail",
+			color = Color3.fromRGB(255, 100, 50),
+			rarity = "Common",
+			stats = {speedBonus = 0},
+			description = "Burn with intensity!"
+		},
+		Ice = {
+			id = "ice", 
+			name = "Ice Trail", 
+			cost = 750, 
+			type = "trail",
+			color = Color3.fromRGB(100, 200, 255),
+			rarity = "Common",
+			stats = {speedBonus = 0},
+			description = "Leave a frosty path!"
+		},
+		Lightning = {
+			id = "lightning", 
+			name = "Lightning Trail", 
+			cost = 1500, 
+			type = "trail",
+			color = Color3.fromRGB(255, 255, 100),
+			rarity = "Rare",
+			stats = {speedBonus = 2},
+			description = "Electrify the course!"
+		},
+		Galaxy = {
+			id = "galaxy", 
+			name = "Galaxy Trail", 
+			cost = 3000, 
+			type = "trail",
+			color = Color3.fromRGB(150, 100, 255),
+			rarity = "Epic",
+			stats = {speedBonus = 3},
+			description = "Cosmic power!"
+		},
+		Ghost = {
+			id = "ghost", 
+			name = "Ghost Trail", 
+			cost = 5000, 
+			type = "trail",
+			color = Color3.fromRGB(200, 200, 200),
+			rarity = "Legendary",
+			stats = {speedBonus = 5},
+			description = "Haunt the track!"
+		},
+		Golden = {
+			id = "golden", 
+			name = "Golden Aura", 
+			cost = 10000, 
+			type = "trail",
+			color = Color3.fromRGB(255, 215, 0),
+			rarity = "Legendary",
+			stats = {speedBonus = 10},
+			description = "Ultimate prestige!"
+		},
 	},
 	
-	Hats = {
-		Paper = {id = "paper", name = "Paper Hat", cost = 300, type = "hat"},
-		Sunglasses = {id = "sunglasses", name = "Sunglasses", cost = 600, type = "hat"},
-		Crown = {id = "crown", name = "Crown", cost = 2500, type = "hat"},
-		DevilHorns = {id = "devil_horns", name = "Devil Horns", cost = 4000, type = "hat"},
+	Skins = {
+		Red = {
+			id = "skin_red",
+			name = "Crimson Runner",
+			cost = 200,
+			type = "skin",
+			color = Color3.fromRGB(255, 50, 50),
+			rarity = "Common",
+			stats = {healthBonus = 0},
+			description = "Bold and fast!"
+		},
+		Blue = {
+			id = "skin_blue",
+			name = "Azure Runner",
+			cost = 200,
+			type = "skin",
+			color = Color3.fromRGB(50, 100, 255),
+			rarity = "Common",
+			stats = {healthBonus = 0},
+			description = "Cool under pressure!"
+		},
+		Green = {
+			id = "skin_green",
+			name = "Emerald Runner",
+			cost = 400,
+			type = "skin",
+			color = Color3.fromRGB(50, 255, 100),
+			rarity = "Common",
+			stats = {healthBonus = 5},
+			description = "Nature's speed!"
+		},
+		Purple = {
+			id = "skin_purple",
+			name = "Royal Runner",
+			cost = 800,
+			type = "skin",
+			color = Color3.fromRGB(150, 50, 255),
+			rarity = "Rare",
+			stats = {healthBonus = 10},
+			description = "Regal running!"
+		},
+		Black = {
+			id = "skin_black",
+			name = "Shadow Runner",
+			cost = 1500,
+			type = "skin",
+			color = Color3.fromRGB(40, 40, 40),
+			rarity = "Epic",
+			stats = {healthBonus = 15},
+			description = "Blend into darkness!"
+		},
+		Rainbow = {
+			id = "skin_rainbow",
+			name = "Prismatic Runner",
+			cost = 5000,
+			type = "skin",
+			color = Color3.fromRGB(255, 100, 200),
+			rarity = "Legendary",
+			stats = {healthBonus = 25, speedBonus = 5},
+			description = "Shine bright!"
+		},
+	},
+	
+	Powerups = {
+		ShieldPack = {
+			id = "shield_pack",
+			name = "Shield Pack (3x)",
+			cost = 300,
+			type = "powerup",
+			powerupType = "shield",
+			amount = 3,
+			rarity = "Common",
+			stats = {},
+			description = "3 shield bubbles!"
+		},
+		SpeedPack = {
+			id = "speed_pack",
+			name = "Speed Pack (5x)",
+			cost = 500,
+			type = "powerup",
+			powerupType = "speed",
+			amount = 5,
+			rarity = "Rare",
+			stats = {},
+			description = "5 speed boosts!"
+		},
+		RevivePack = {
+			id = "revive_pack",
+			name = "Revive Pack (3x)",
+			cost = 600,
+			type = "powerup",
+			powerupType = "revive",
+			amount = 3,
+			rarity = "Epic",
+			stats = {},
+			description = "3 extra lives!"
+		},
 	},
 }
 
@@ -206,6 +366,21 @@ for category, items in pairs(Config.Cosmetics) do
 		Config.CosmeticsById[item.id] = item
 	end
 end
+
+-- Shop category order for UI
+Config.ShopCategories = {
+	{key = "Trails", name = "Trails", icon = "✨"},
+	{key = "Skins", name = "Skins", icon = "👤"},
+	{key = "Powerups", name = "Powerups", icon = "⚡"},
+}
+
+-- Rarity colors for UI
+Config.RarityColors = {
+	Common = Color3.fromRGB(150, 150, 150),
+	Rare = Color3.fromRGB(50, 150, 255),
+	Epic = Color3.fromRGB(180, 50, 255),
+	Legendary = Color3.fromRGB(255, 180, 50),
+}
 
 -- ============================================================================
 -- GAMEPLAY CONSTANTS
