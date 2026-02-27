@@ -13,15 +13,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Setup Rojo
-      uses: ok-nick/setup-rojo@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Verify Rojo
+    - name: Install Rojo
       run: |
+        echo "Downloading Rojo..."
+        curl -L -o rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux.zip
+        echo "Unzipping..."
+        unzip -q rojo.zip
+        echo "Installing..."
+        chmod +x rojo
+        sudo mv rojo /usr/local/bin/
+        echo "Rojo version:"
         rojo --version
-        which rojo
     
     - name: Verify project structure
       run: |
@@ -30,6 +32,7 @@ jobs:
     
     - name: Build Place File
       run: |
+        echo "Building with Rojo..."
         rojo build default.project.json -o EndlessEscape.rbxl
         echo "Build successful!"
         ls -la EndlessEscape.rbxl
