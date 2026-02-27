@@ -1,12 +1,8 @@
--- GameConfig - Simple configuration
+-- GameConfig
 local GameConfig = {}
 
-GameConfig.SPAWN_POSITION = Vector3.new(0, 10, 0)
-GameConfig.PLAYER_SPEED = 16
-GameConfig.PLAYER_JUMP = 50
-
--- Simple platform spacing
-GameConfig.PLATFORM_GAP_MIN = 8
-GameConfig.PLATFORM_GAP_MAX = 12
+GameConfig.SPAWN = Vector3.new(0, 10, 0)
+GameConfig.GAP = 10 -- 10 studs between platforms
+GameConfig.PLATFORM_SIZE = Vector3.new(12, 1, 12)
 
 return GameConfig

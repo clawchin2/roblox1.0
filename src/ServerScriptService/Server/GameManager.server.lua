@@ -1,103 +1,89 @@
--- GameManager - FIXED with permanent UI and infinite generation
-print("[GameManager] Loading...")
+-- GameManager
+print("[GameManager] Starting...")
 
 local Players = game:GetService("Players")
 
--- Store player data
-local playerData = {}
+-- Player data
+local data = {}
 
 Players.PlayerAdded:Connect(function(player)
-    print("[GameManager] Player joined: " .. player.Name)
+    print("Player joined: " .. player.Name)
     
-    -- Initialize data
-    playerData[player.UserId] = {
+    -- Create leaderstats
+    local stats = Instance.new("Folder")
+    stats.Name = "leaderstats"
+    
+    local score = Instance.new("IntValue")
+    score.Name = "Score"
+    score.Value = 0
+    score.Parent = stats
+    
+    stats.Parent = player
+    
+    -- Store data
+    data[player.UserId] = {
         startZ = nil,
-        distance = 0,
-        hasSpawned = false
+        dist = 0
     }
     
-    -- Handle character
+    -- Character spawn
     player.CharacterAdded:Connect(function(char)
-        print("[GameManager] Character spawned for " .. player.Name)
-        
-        local data = playerData[player.UserId]
         local hrp = char:WaitForChild("HumanoidRootPart")
         local humanoid = char:WaitForChild("Humanoid")
         
-        -- ALWAYS reset to spawn position
-        task.wait(0.1)
+        -- Reset to spawn
         hrp.CFrame = CFrame.new(0, 15, 0)
-        data.startZ = 0
-        data.distance = 0
         
-        print("[GameManager] Reset " .. player.Name .. " to start")
+        -- Set start Z
+        data[player.UserId].startZ = 0
+        data[player.UserId].dist = 0
         
-        -- Death handler
+        -- Reset score
+        local s = player:FindFirstChild("leaderstats")
+        if s then
+            local sc = s:FindFirstChild("Score")
+            if sc then sc.Value = 0 end
+        end
+        
+        -- Death
         humanoid.Died:Connect(function()
-            print("[GameManager] " .. player.Name .. " died")
-            task.delay(2, function()
-                if player.Parent then
-                    player:LoadCharacter()
-                end
-            end)
+            task.wait(2)
+            player:LoadCharacter()
         end)
     end)
 end)
 
--- Distance tracking - runs forever
-print("[GameManager] Starting distance tracker...")
-task.spawn(function()
-    while true do
-        task.wait(0.1)
+-- Track distance
+while true do
+    task.wait(0.1)
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        local d = data[player.UserId]
+        if not d or not d.startZ then continue end
         
-        for _, player in ipairs(Players:GetPlayers()) do
-            local data = playerData[player.UserId]
-            if not data then continue end
+        local char = player.Character
+        if not char then continue end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then continue end
+        
+        -- Distance is negative Z (running forward)
+        local dist = math.floor(-hrp.Position.Z)
+        
+        if dist > 0 and dist > d.dist then
+            d.dist = dist
             
-            local char = player.Character
-            if not char then continue end
-            
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then continue end
-            
-            -- Calculate distance from spawn (0,0,0)
-            local currentZ = hrp.Position.Z
-            local dist = math.floor(-currentZ) -- Negative Z is forward
-            
-            if dist > 0 and dist > data.distance then
-                data.distance = dist
-                
-                -- Update leaderstats
-                local stats = player:FindFirstChild("leaderstats")
-                if not stats then
-                    -- Recreate if missing
-                    stats = Instance.new("Folder")
-                    stats.Name = "leaderstats"
-                    
-                    local score = Instance.new("IntValue")
-                    score.Name = "Score"
-                    score.Parent = stats
-                    
-                    local coins = Instance.new("IntValue")
-                    coins.Name = "Coins"
-                    coins.Value = 0
-                    coins.Parent = stats
-                    
-                    stats.Parent = player
-                end
-                
-                local score = stats:FindFirstChild("Score")
-                if score then
-                    score.Value = data.distance
-                end
-            end
-            
-            -- Fall death
-            if hrp.Position.Y < -20 then
-                humanoid.Health = 0
+            local s = player:FindFirstChild("leaderstats")
+            if s then
+                local sc = s:FindFirstChild("Score")
+                if sc then sc.Value = dist end
             end
         end
+        
+        -- Fall death
+        if hrp.Position.Y < -20 then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.Health = 0 end
+        end
     end
-end)
-
-print("[GameManager] Ready")
+end
