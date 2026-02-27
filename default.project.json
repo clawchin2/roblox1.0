@@ -22,17 +22,20 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "MainScript": {
-        "$path": "src/ServerScriptService/Server/MainScript.server.lua"
-      },
       "GameManager": {
         "$path": "src/ServerScriptService/Server/GameManager.server.lua"
       },
       "LevelGeneratorModule": {
         "$path": "src/ServerScriptService/Server/LevelGenerator.lua"
       },
+      "MainScript": {
+        "$path": "src/ServerScriptService/Server/MainScript.server.lua"
+      },
       "BackgroundManager": {
         "$path": "src/ServerScriptService/Server/BackgroundManager.lua"
+      },
+      "DebugTest": {
+        "$path": "src/ServerScriptService/Server/DebugTest.server.lua"
       }
     },
     "StarterPlayer": {
