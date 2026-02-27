@@ -1,4 +1,4 @@
-name: Build and Publish to Roblox
+name: Build and Package
 
 on:
   push:
@@ -6,55 +6,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  package:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Rojo
+    - name: Create Package
       run: |
-        echo "=== Installing Rojo ==="
-        # Download Rojo binary
-        curl -fsSL -o rojo.tar.gz https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.tar.gz
-        # Extract
-        tar -xzf rojo.tar.gz
-        # Move to PATH
-        sudo mv rojo /usr/local/bin/rojo
-        sudo chmod +x /usr/local/bin/rojo
-        # Verify
-        echo "Rojo installed at:"
-        which rojo
-        echo "Rojo version:"
-        rojo --version
+        echo "=== Creating game package ==="
+        zip -r EndlessEscape-Source.zip src/ README.md SETUP.md
+        echo "=== Package created ==="
+        ls -lh EndlessEscape-Source.zip
     
-    - name: Build Place File
-      run: |
-        echo "=== Building with Rojo ==="
-        rojo build default.project.json -o EndlessEscape.rbxl
-        echo "=== Build complete ==="
-        ls -lh EndlessEscape.rbxl
-    
-    - name: Upload Build Artifact
+    - name: Upload Source Package
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: EndlessEscape-Build
-        path: EndlessEscape.rbxl
-        retention-days: 7
-        if-no-files-found: ignore
-    
-    - name: Publish to Roblox
-      if: env.ROBLOX_API_KEY != ''
-      env:
-        ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
-        ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
-        ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
-      run: |
-        echo "=== Publishing to Roblox ==="
-        curl -X POST "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions" \
-          -H "x-api-key: ${ROBLOX_API_KEY}" \
-          -H "Content-Type: application/octet-stream" \
-          --data-binary @EndlessEscape.rbxl
-        echo "✅ Published successfully!"
+        name: EndlessEscape-Source
+        path: EndlessEscape-Source.zip
+        retention-days: 30
