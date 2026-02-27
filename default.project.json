@@ -20,7 +20,16 @@
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {
-        "$path": "src/ServerScriptService/Server"
+        "$className": "Folder",
+        "GameManager": {
+          "$path": "src/ServerScriptService/Server/GameManager.lua"
+        },
+        "LevelGenerator": {
+          "$path": "src/ServerScriptService/Server/LevelGenerator.lua"
+        },
+        "MainScript": {
+          "$path": "src/ServerScriptService/Server/MainScript.lua"
+        }
       }
     },
     "StarterPlayer": {
@@ -46,23 +55,21 @@
         "$properties": {
           "Position": [0, 15, 0],
           "Neutral": true,
-          "AllowTeamChangeOnTouch": false
+          "AllowTeamChangeOnTouch": false,
+          "Enabled": true
         }
       },
       "BasePlate": {
         "$className": "Part",
         "$properties": {
-          "Name": "BasePlate",
           "Size": [50, 1, 50],
           "Position": [0, 9.5, 0],
           "Anchored": true,
           "Color": [0.2, 0.7, 0.2],
-          "Material": "SmoothPlastic"
+          "Material": "SmoothPlastic",
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
         }
-      },
-      "Lobby": {
-        "$className": "Folder",
-        "$path": "src/Workspace/Lobby"
       }
     },
     "Lighting": {
@@ -71,12 +78,6 @@
         "Technology": "Future",
         "Brightness": 2,
         "GlobalShadows": true
-      }
-    },
-    "ReplicatedFirst": {
-      "$className": "ReplicatedFirst",
-      "LoadingScreen": {
-        "$path": "src/ReplicatedFirst/LoadingScreen.lua"
       }
     }
   }
