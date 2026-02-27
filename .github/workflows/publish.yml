@@ -22,12 +22,12 @@ jobs:
     
     - name: Build .rbxl file
       run: |
-        ./rojo build default.project.json -o EndlessEscape-FINAL.rbxl
-        ls -lh EndlessEscape-FINAL.rbxl
+        ./rojo build default.project.json -o EndlessEscape-Day1.rbxl
+        ls -lh EndlessEscape-Day1.rbxl
     
-    - name: Upload FINAL artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: EndlessEscape-FINAL-v2
-        path: EndlessEscape-FINAL.rbxl
+        name: EndlessEscape-Day1
+        path: EndlessEscape-Day1.rbxl
         retention-days: 30
