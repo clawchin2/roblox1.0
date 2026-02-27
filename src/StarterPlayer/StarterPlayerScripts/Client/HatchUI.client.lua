@@ -1,117 +1,403 @@
--- Hatch Results UI
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- HatchUI.client.lua
+-- Client-side UI for egg hatching popup
+-- FIXED: Ensures RemoteEvent exists before connecting
+
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Listen for hatch results
-local hatchEvent = ReplicatedStorage:WaitForChild("HatchEvent")
+print("[HatchUI] Initializing...")
 
-hatchEvent.OnClientEvent:Connect(function(result, data)
-    if result == "success" then
-        -- Show hatch success UI
-        local pet = data
-        
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 400, 0, 300)
-        frame.Position = UDim2.new(0.5, -200, 0.5, -150)
-        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        frame.ZIndex = 100
-        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 20)
-        frame.Parent = gui
-        
-        -- Title
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 50)
-        title.BackgroundTransparency = 1
-        title.Text = "🎉 YOU HATCHED!"
-        title.TextColor3 = Color3.fromRGB(255, 215, 0)
-        title.TextSize = 32
-        title.Font = Enum.Font.GothamBold
-        title.ZIndex = 101
-        title.Parent = frame
-        
-        -- Pet name
-        local name = Instance.new("TextLabel")
-        name.Size = UDim2.new(1, 0, 0, 60)
-        name.Position = UDim2.new(0, 0, 0, 60)
-        name.BackgroundTransparency = 1
-        name.Text = pet.name
-        name.TextSize = 40
-        name.Font = Enum.Font.GothamBold
-        name.ZIndex = 101
-        
-        -- Color by rarity
-        if pet.rarity == "Common" then
-            name.TextColor3 = Color3.fromRGB(169, 169, 169)
-        elseif pet.rarity == "Uncommon" then
-            name.TextColor3 = Color3.fromRGB(0, 255, 0)
-        elseif pet.rarity == "Rare" then
-            name.TextColor3 = Color3.fromRGB(0, 100, 255)
-        elseif pet.rarity == "Epic" then
-            name.TextColor3 = Color3.fromRGB(150, 0, 255)
-        elseif pet.rarity == "Legendary" then
-            name.TextColor3 = Color3.fromRGB(255, 215, 0)
-        end
-        name.Parent = frame
-        
-        -- Rarity
-        local rarity = Instance.new("TextLabel")
-        rarity.Size = UDim2.new(1, 0, 0, 40)
-        rarity.Position = UDim2.new(0, 0, 0, 120)
-        rarity.BackgroundTransparency = 1
-        rarity.Text = pet.rarity
-        rarity.TextColor3 = name.TextColor3
-        rarity.TextSize = 28
-        rarity.Font = Enum.Font.Gotham
-        rarity.ZIndex = 101
-        rarity.Parent = frame
-        
-        -- Stats
-        local stats = Instance.new("TextLabel")
-        stats.Size = UDim2.new(1, 0, 0, 40)
-        stats.Position = UDim2.new(0, 0, 0, 170)
-        stats.BackgroundTransparency = 1
-        stats.Text = "Speed: " .. pet.speed .. " | Coins: x" .. pet.coins
-        stats.TextColor3 = Color3.fromRGB(255, 255, 255)
-        stats.TextSize = 20
-        stats.Font = Enum.Font.Gotham
-        stats.ZIndex = 101
-        stats.Parent = frame
-        
-        -- Close button
-        local close = Instance.new("TextButton")
-        close.Size = UDim2.new(0, 200, 0, 50)
-        close.Position = UDim2.new(0.5, -100, 1, -70)
-        close.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-        close.Text = "AWESOME!"
-        close.TextSize = 24
-        close.Font = Enum.Font.GothamBold
-        close.ZIndex = 101
-        Instance.new("UICorner", close).CornerRadius = UDim.new(0, 10)
-        close.Parent = frame
-        
-        close.MouseButton1Click:Connect(function()
-            frame:Destroy()
-        end)
-        
-        -- Auto close after 5 seconds
-        task.delay(5, function()
-            if frame and frame.Parent then
-                frame:Destroy()
-            end
-        end)
-        
-    elseif result == "fail" then
-        -- Show error
-        print("Hatch failed: " .. data)
-    end
+-- ============================================
+-- WAIT FOR REMOTE EVENT (FIXED)
+-- ============================================
+
+-- FIXED: Wait for event to exist before connecting
+local hatchEvent = ReplicatedStorage:WaitForChild("HatchEvent", 10)
+if not hatchEvent then
+	warn("[HatchUI] HatchEvent not found after waiting 10 seconds!")
+	-- Create as fallback
+	hatchEvent = Instance.new("RemoteEvent")
+	hatchEvent.Name = "HatchEvent"
+	hatchEvent.Parent = ReplicatedStorage
+end
+
+-- Get or create hatch request event
+local hatchRequestEvent = ReplicatedStorage:FindFirstChild("HatchRequest")
+if not hatchRequestEvent then
+	hatchRequestEvent = Instance.new("RemoteEvent")
+	hatchRequestEvent.Name = "HatchRequest"
+	hatchRequestEvent.Parent = ReplicatedStorage
+end
+
+print("[HatchUI] Remote events connected")
+
+-- ============================================
+-- RARITY COLORS (From Expert Knowledge)
+-- ============================================
+
+local RARITY_COLORS = {
+	Common = Color3.fromRGB(169, 169, 169),    -- Gray
+	Uncommon = Color3.fromRGB(0, 255, 0),      -- Green
+	Rare = Color3.fromRGB(0, 100, 255),        -- Blue
+	Legendary = Color3.fromRGB(255, 215, 0)    -- Gold
+}
+
+local RARITY_GLOW = {
+	Common = Color3.fromRGB(100, 100, 100),
+	Uncommon = Color3.fromRGB(0, 150, 0),
+	Rare = Color3.fromRGB(0, 50, 200),
+	Legendary = Color3.fromRGB(255, 180, 0)
+}
+
+-- ============================================
+-- UI CREATION
+-- ============================================
+
+local hatchPopup = nil
+local isShowing = false
+
+local function createHatchPopup()
+	-- Create ScreenGui
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "HatchPopupUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.Parent = playerGui
+	
+	-- Main frame
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "HatchFrame"
+	mainFrame.Size = UDim2.new(0, 400, 0, 320)
+	mainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Visible = false
+	mainFrame.Parent = screenGui
+	
+	-- Corner radius
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 20)
+	corner.Parent = mainFrame
+	
+	-- Glow border
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(255, 215, 0)
+	stroke.Thickness = 4
+	stroke.Parent = mainFrame
+	
+	-- Title label
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "TitleLabel"
+	titleLabel.Size = UDim2.new(1, 0, 0, 50)
+	titleLabel.Position = UDim2.new(0, 0, 0, 10)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = "🎉 NEW PET HATCHED! 🎉"
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextScaled = true
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.Parent = mainFrame
+	
+	-- Pet name label
+	local petNameLabel = Instance.new("TextLabel")
+	petNameLabel.Name = "PetNameLabel"
+	petNameLabel.Size = UDim2.new(1, 0, 0, 45)
+	petNameLabel.Position = UDim2.new(0, 0, 0, 70)
+	petNameLabel.BackgroundTransparency = 1
+	petNameLabel.Text = "Pet Name"
+	petNameLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	petNameLabel.TextScaled = true
+	petNameLabel.Font = Enum.Font.GothamBlack
+	petNameLabel.Parent = mainFrame
+	
+	-- Rarity label
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Name = "RarityLabel"
+	rarityLabel.Size = UDim2.new(1, 0, 0, 30)
+	rarityLabel.Position = UDim2.new(0, 0, 0, 115)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Text = "RARITY"
+	rarityLabel.TextColor3 = Color3.fromRGB(169, 169, 169)
+	rarityLabel.TextScaled = true
+	rarityLabel.Font = Enum.Font.GothamBold
+	rarityLabel.Parent = mainFrame
+	
+	-- Pet display frame
+	local petDisplay = Instance.new("Frame")
+	petDisplay.Name = "PetDisplay"
+	petDisplay.Size = UDim2.new(0, 100, 0, 100)
+	petDisplay.Position = UDim2.new(0.5, -50, 0, 155)
+	petDisplay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	petDisplay.BorderSizePixel = 0
+	petDisplay.Parent = mainFrame
+	
+	local petCorner = Instance.new("UICorner")
+	petCorner.CornerRadius = UDim.new(1, 0)
+	petCorner.Parent = petDisplay
+	
+	-- Pet display glow
+	local petStroke = Instance.new("UIStroke")
+	petStroke.Color = Color3.fromRGB(255, 255, 255)
+	petStroke.Thickness = 4
+	petStroke.Parent = petDisplay
+	
+	-- Stats frame
+	local statsFrame = Instance.new("Frame")
+	statsFrame.Name = "StatsFrame"
+	statsFrame.Size = UDim2.new(0.9, 0, 0, 35)
+	statsFrame.Position = UDim2.new(0.05, 0, 0, 265)
+	statsFrame.BackgroundTransparency = 1
+	statsFrame.Parent = mainFrame
+	
+	local statsLayout = Instance.new("UIListLayout")
+	statsLayout.FillDirection = Enum.FillDirection.Horizontal
+	statsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	statsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	statsLayout.Padding = UDim.new(0, 15)
+	statsLayout.Parent = statsFrame
+	
+	-- Speed stat
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Name = "SpeedLabel"
+	speedLabel.Size = UDim2.new(0, 90, 0, 30)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "⚡ Speed: 0"
+	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedLabel.TextScaled = true
+	speedLabel.Font = Enum.Font.GothamBold
+	speedLabel.Parent = statsFrame
+	
+	-- Jump stat
+	local jumpLabel = Instance.new("TextLabel")
+	jumpLabel.Name = "JumpLabel"
+	jumpLabel.Size = UDim2.new(0, 90, 0, 30)
+	jumpLabel.BackgroundTransparency = 1
+	jumpLabel.Text = "⬆️ Jump: 0"
+	jumpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	jumpLabel.TextScaled = true
+	jumpLabel.Font = Enum.Font.GothamBold
+	jumpLabel.Parent = statsFrame
+	
+	-- Coins stat
+	local coinsLabel = Instance.new("TextLabel")
+	coinsLabel.Name = "CoinsLabel"
+	coinsLabel.Size = UDim2.new(0, 90, 0, 30)
+	coinsLabel.BackgroundTransparency = 1
+	coinsLabel.Text = "🪙 x1.0"
+	coinsLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	coinsLabel.TextScaled = true
+	coinsLabel.Font = Enum.Font.GothamBold
+	coinsLabel.Parent = statsFrame
+	
+	-- Close button
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Size = UDim2.new(0, 150, 0, 45)
+	closeButton.Position = UDim2.new(0.5, -75, 1, -5)
+	closeButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+	closeButton.Text = "AWESOME!"
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.TextScaled = true
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.Parent = mainFrame
+	
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 10)
+	closeCorner.Parent = closeButton
+	
+	-- Click handler
+	closeButton.MouseButton1Click:Connect(function()
+		hideHatchPopup()
+	end)
+	
+	return {
+		screenGui = screenGui,
+		mainFrame = mainFrame,
+		titleLabel = titleLabel,
+		petNameLabel = petNameLabel,
+		rarityLabel = rarityLabel,
+		petDisplay = petDisplay,
+		petStroke = petStroke,
+		speedLabel = speedLabel,
+		jumpLabel = jumpLabel,
+		coinsLabel = coinsLabel,
+		stroke = stroke,
+		closeButton = closeButton
+	}
+end
+
+-- ============================================
+-- SHOW/HIDE FUNCTIONS
+-- ============================================
+
+function showHatchPopup(petData)
+	if isShowing then
+		hideHatchPopup()
+		task.wait(0.2)
+	end
+	
+	if not hatchPopup then
+		hatchPopup = createHatchPopup()
+	end
+	
+	-- Update content
+	hatchPopup.petNameLabel.Text = petData.name
+	hatchPopup.rarityLabel.Text = petData.rarity:upper()
+	
+	-- Set rarity colors
+	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 255, 255)
+	local glowColor = RARITY_GLOW[petData.rarity] or rarityColor
+	
+	hatchPopup.petNameLabel.TextColor3 = rarityColor
+	hatchPopup.rarityLabel.TextColor3 = rarityColor
+	hatchPopup.petDisplay.BackgroundColor3 = rarityColor
+	hatchPopup.petStroke.Color = glowColor
+	hatchPopup.stroke.Color = glowColor
+	
+	-- Update stats
+	local stats = petData.stats or {speed = 0, jump = 0, coins = 1.0}
+	hatchPopup.speedLabel.Text = "⚡ Speed: " .. (stats.speed or 0)
+	hatchPopup.jumpLabel.Text = "⬆️ Jump: " .. (stats.jump or 0)
+	hatchPopup.coinsLabel.Text = "🪙 x" .. (stats.coins or 1.0)
+	
+	-- Show popup with animation
+	hatchPopup.mainFrame.Visible = true
+	hatchPopup.mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	hatchPopup.mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	
+	isShowing = true
+	
+	-- Animate in with Back easing
+	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	local targetSize = UDim2.new(0, 400, 0, 320)
+	local targetPos = UDim2.new(0.5, -200, 0.5, -160)
+	
+	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
+	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})
+	
+	sizeTween:Play()
+	posTween:Play()
+	
+	-- Play sound if available
+	local SoundManager = nil
+	pcall(function()
+		SoundManager = require(ReplicatedStorage.Modules:WaitForChild("SoundManager", 2))
+	end)
+	
+	if SoundManager then
+		if petData.rarity == "Legendary" then
+			SoundManager:Play("LegendaryHatch")
+		elseif petData.rarity == "Rare" then
+			SoundManager:Play("RareHatch")
+		else
+			SoundManager:Play("HatchSuccess")
+		end
+	end
+	
+	-- Update Equipped UI
+	updateEquippedUI(petData)
+	
+	print("[HatchUI] Showing hatch popup for " .. petData.name .. " (" .. petData.rarity .. ")")
+end
+
+function hideHatchPopup()
+	if not hatchPopup or not isShowing then
+		return
+	end
+	
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	local targetSize = UDim2.new(0, 0, 0, 0)
+	local targetPos = UDim2.new(0.5, 0, 0.5, 0)
+	
+	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
+	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})
+	
+	sizeTween:Play()
+	posTween:Play()
+	
+	sizeTween.Completed:Connect(function()
+		hatchPopup.mainFrame.Visible = false
+		isShowing = false
+	end)
+end
+
+-- ============================================
+-- UPDATE EQUIPPED UI
+-- ============================================
+
+function updateEquippedUI(petData)
+	-- Fire event to EquippedUI if it exists
+	local equippedEvent = ReplicatedStorage:FindFirstChild("EquippedPetEvent")
+	if equippedEvent then
+		equippedEvent:FireClient(player, petData)
+	end
+	
+	-- Also set player attributes for persistence
+	player:SetAttribute("EquippedPet", petData.id)
+	player:SetAttribute("EquippedPetName", petData.name)
+	player:SetAttribute("EquippedPetRarity", petData.rarity)
+end
+
+-- ============================================
+-- REMOTE EVENT HANDLER (FIXED)
+-- ============================================
+
+hatchEvent.OnClientEvent:Connect(function(petData, errorMessage)
+	if errorMessage then
+		print("[HatchUI] Hatch error: " .. errorMessage)
+		
+		-- Show error notification
+		local errorGui = Instance.new("ScreenGui")
+		errorGui.Name = "ErrorNotification"
+		errorGui.Parent = playerGui
+		
+		local errorFrame = Instance.new("Frame")
+		errorFrame.Size = UDim2.new(0, 300, 0, 60)
+		errorFrame.Position = UDim2.new(0.5, -150, 0, 100)
+		errorFrame.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		errorFrame.Parent = errorGui
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = errorFrame
+		
+		local errorLabel = Instance.new("TextLabel")
+		errorLabel.Size = UDim2.new(1, 0, 1, 0)
+		errorLabel.BackgroundTransparency = 1
+		errorLabel.Text = errorMessage
+		errorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		errorLabel.TextScaled = true
+		errorLabel.Font = Enum.Font.GothamBold
+		errorLabel.Parent = errorFrame
+		
+		task.delay(3, function()
+			errorGui:Destroy()
+		end)
+		
+		return
+	end
+	
+	if petData then
+		showHatchPopup(petData)
+	end
 end)
 
-print("[HatchUI] Ready - Listening for hatch events...")
+-- ============================================
+-- PUBLIC API
+-- ============================================
 
--- Debug: Test the connection
-hatchEvent.OnClientEvent:Connect(function(result, data)
-    print("[HatchUI] Received event: " .. tostring(result))
-end)
+function requestHatch(eggType)
+	print("[HatchUI] Requesting hatch for " .. (eggType or "basic") .. " egg")
+	hatchRequestEvent:FireServer(eggType)
+end
+
+print("[HatchUI] Ready! Listening for hatch events.")
+
+return {
+	requestHatch = requestHatch,
+	showHatchPopup = showHatchPopup,
+	hideHatchPopup = hideHatchPopup
+}
