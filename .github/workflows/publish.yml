@@ -15,48 +15,46 @@ jobs:
     
     - name: Install Rojo
       run: |
-        echo "Downloading Rojo..."
-        curl -L -o rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux.zip
-        echo "Unzipping..."
-        unzip -q rojo.zip
-        echo "Installing..."
-        chmod +x rojo
-        sudo mv rojo /usr/local/bin/
+        echo "=== Installing Rojo ==="
+        # Download Rojo binary
+        curl -fsSL -o rojo.tar.gz https://github.com/rojo-rbx/rojo/releases/download/v7.4.4/rojo-7.4.4-linux-x86_64.tar.gz
+        # Extract
+        tar -xzf rojo.tar.gz
+        # Move to PATH
+        sudo mv rojo /usr/local/bin/rojo
+        sudo chmod +x /usr/local/bin/rojo
+        # Verify
+        echo "Rojo installed at:"
+        which rojo
         echo "Rojo version:"
         rojo --version
     
-    - name: Verify project structure
-      run: |
-        echo "=== Verifying Lua files ==="
-        find src -name "*.lua" -type f
-    
     - name: Build Place File
       run: |
-        echo "Building with Rojo..."
+        echo "=== Building with Rojo ==="
         rojo build default.project.json -o EndlessEscape.rbxl
-        echo "Build successful!"
-        ls -la EndlessEscape.rbxl
+        echo "=== Build complete ==="
+        ls -lh EndlessEscape.rbxl
     
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: EndlessEscape-Build
         path: EndlessEscape.rbxl
         retention-days: 7
+        if-no-files-found: ignore
     
-    - name: Publish to Roblox (if configured)
+    - name: Publish to Roblox
+      if: env.ROBLOX_API_KEY != ''
       env:
         ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
         ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
         ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
       run: |
-        if [ -z "$ROBLOX_API_KEY" ]; then
-          echo "⚠️ Roblox API key not configured. Skipping publish."
-          exit 0
-        fi
-        echo "Publishing to Roblox..."
+        echo "=== Publishing to Roblox ==="
         curl -X POST "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions" \
           -H "x-api-key: ${ROBLOX_API_KEY}" \
           -H "Content-Type: application/octet-stream" \
           --data-binary @EndlessEscape.rbxl
-        echo "✅ Published!"
+        echo "✅ Published successfully!"
