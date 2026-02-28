@@ -250,17 +250,20 @@ shopBtn.MouseButton1Click:Connect(function()
     shopFrame.Visible = not shopFrame.Visible
 end)
 
--- PETS / Inventory button
+-- PETS / Inventory button (MOVED to top left for visibility test)
 local invBtn = Instance.new("TextButton")
 invBtn.Name = "InventoryButton"
 invBtn.Size = UDim2.new(0, 120, 0, 45)
-invBtn.Position = UDim2.new(0, 20, 1, -60)
+invBtn.Position = UDim2.new(0, 20, 0, 80) -- Top left, below coins
 invBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
 invBtn.Text = "🎒 PETS"
+invBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 invBtn.TextSize = 20
 invBtn.Font = Enum.Font.GothamBold
+invBtn.Visible = true
 Instance.new("UICorner", invBtn).CornerRadius = UDim.new(0, 10)
 invBtn.Parent = screen
+print("[UI] PETS button created at position 20,80")
 
 -- Inventory UI
 local invFrame = Instance.new("Frame")
