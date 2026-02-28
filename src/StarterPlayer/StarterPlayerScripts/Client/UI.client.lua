@@ -238,6 +238,10 @@ for i, egg in ipairs(eggs) do
     btn.MouseButton1Click:Connect(function()
         if hatchEvent then
             print("[UI] Buying: " .. egg.Id)
+            -- Close shop before hatching
+            shopFrame.Visible = false
+            -- Small delay for shop to close before server response
+            task.wait(0.1)
             hatchEvent:FireServer(egg.Id)
         else
             showError("Hatch system not ready")

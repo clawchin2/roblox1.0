@@ -50,9 +50,10 @@ hatchEvent.OnServerEvent:Connect(function(player, eggType)
             rarity = pet.rarity,
             id = pet.id,
             speed = pet.speed,
-            coins = pet.coins
+            coins = pet.coins,
+            eggType = eggType
         })
-        print("[Hatch] SUCCESS: " .. player.Name .. " got " .. pet.name)
+        print("[Hatch] SUCCESS: " .. player.Name .. " got " .. pet.name .. " (coins: " .. tostring(pet.coins) .. ")")
     else
         hatchEvent:FireClient(player, {
             success = false,

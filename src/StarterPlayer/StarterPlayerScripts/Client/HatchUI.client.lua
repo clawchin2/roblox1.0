@@ -393,26 +393,34 @@ end
 -- CLOSE SHOP/PURCHASE WINDOWS
 -- ============================================
 local function closeShopWindows()
-	-- Close ShopUI
-	local shopUI = playerGui:FindFirstChild("ShopUI")
-	if shopUI then
-		shopUI.Enabled = false
-	end
-	
-	-- Close EggShop
-	local eggShop = playerGui:FindFirstChild("EggShop")
-	if eggShop then
-		eggShop.Enabled = false
-	end
-	
-	-- Close any ScreenGui with "Shop" in name
-	for _, gui in ipairs(playerGui:GetChildren()) do
-		if gui:IsA("ScreenGui") and (gui.Name:find("Shop") or gui.Name:find("Purchase")) then
-			gui.Enabled = false
+	-- Close GameUI ShopFrame (Egg Shop)
+	local gameUI = playerGui:FindFirstChild("GameUI")
+	if gameUI then
+		local shopFrame = gameUI:FindFirstChild("ShopFrame")
+		if shopFrame then
+			shopFrame.Visible = false
+			print("[HatchUI] Closed GameUI.ShopFrame")
 		end
 	end
 	
-	print("[HatchUI] Closed shop windows")
+	-- Close EndlessEscapeUI CosmeticShop
+	local endlessUI = playerGui:FindFirstChild("EndlessEscapeUI")
+	if endlessUI then
+		local cosmeticShop = endlessUI:FindFirstChild("CosmeticShop")
+		if cosmeticShop then
+			cosmeticShop.Visible = false
+			print("[HatchUI] Closed EndlessEscapeUI.CosmeticShop")
+		end
+	end
+	
+	-- Close InventorySystem
+	local invSystem = playerGui:FindFirstChild("InventorySystem")
+	if invSystem then
+		invSystem.Enabled = false
+		print("[HatchUI] Closed InventorySystem")
+	end
+	
+	print("[HatchUI] Shop windows closed")
 end
 
 -- ============================================
@@ -547,10 +555,22 @@ function showResultPopup(petData)
 		ui.petImage.Visible = false
 	end
 	
-	-- Stats
+	-- Stats with debug logging
 	local stats = petData.stats or {}
-	ui.speedLabel.Text = "Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
-	local coinMult = tonumber(stats.coins) or tonumber(petData.coins) or 1
+	local speedVal = tonumber(stats.speed) or tonumber(petData.speed) or 0
+	ui.speedLabel.Text = "Speed: " .. speedVal
+	
+	-- Coin multiplier with fallback chain
+	local coinMult = 1
+	if stats.coins then
+		coinMult = tonumber(stats.coins) or 1
+	elseif petData.coins then
+		coinMult = tonumber(petData.coins) or 1
+	end
+	
+	-- DEBUG: Log what we received
+	print("[HatchUI] Coin data - stats.coins: " .. tostring(stats.coins) .. ", petData.coins: " .. tostring(petData.coins) .. ", final: " .. coinMult)
+	
 	ui.coinsLabel.Text = coinMult .. "x Coins"
 	
 	-- Show with animation
