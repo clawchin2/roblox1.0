@@ -1,6 +1,6 @@
 -- HatchUI.client.lua
--- Client-side UI for egg hatching popup
--- FIXED: Ensures RemoteEvent exists before connecting
+-- Client-side UI for egg hatching with ANIMATED EGG SEQUENCE
+-- Flow: Egg appears → Shakes → Cracks → Hatches → Reveal creature
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,23 +10,18 @@ local ContentProvider = game:GetService("ContentProvider")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("[HatchUI] Initializing...")
+print("[HatchUI] Initializing with Egg Animation...")
 
 -- ============================================
--- WAIT FOR REMOTE EVENT (FIXED)
+-- WAIT FOR REMOTE EVENT
 -- ============================================
-
--- FIXED: Wait for event to exist before connecting
 local hatchEvent = ReplicatedStorage:WaitForChild("HatchEvent", 10)
 if not hatchEvent then
-	warn("[HatchUI] HatchEvent not found after waiting 10 seconds!")
-	-- Create as fallback
 	hatchEvent = Instance.new("RemoteEvent")
 	hatchEvent.Name = "HatchEvent"
 	hatchEvent.Parent = ReplicatedStorage
 end
 
--- Get or create hatch request event
 local hatchRequestEvent = ReplicatedStorage:FindFirstChild("HatchRequest")
 if not hatchRequestEvent then
 	hatchRequestEvent = Instance.new("RemoteEvent")
@@ -34,53 +29,43 @@ if not hatchRequestEvent then
 	hatchRequestEvent.Parent = ReplicatedStorage
 end
 
-print("[HatchUI] Remote events connected")
-
 -- ============================================
--- CREATURE IMAGE IDs (Upload your images to Roblox and paste IDs here)
+-- CREATURE IMAGE IDs
 -- ============================================
-
 local CREATURE_IMAGES = {
-	-- Common (Texture IDs from Studio)
 	["Tiny Dragon"] = "rbxassetid://100352058348043",
 	["Baby Unicorn"] = "rbxassetid://111331437291244",
 	["Mini Griffin"] = "rbxassetid://111177400493982",
-
-	-- Uncommon
 	["Fire Fox"] = "rbxassetid://99173862361424",
 	["Ice Wolf"] = "rbxassetid://85023087116411",
 	["Thunder Bird"] = "rbxassetid://115102972096254",
-
-	-- Rare
 	["Phoenix"] = "rbxassetid://118782453217813",
 	["Kraken"] = "rbxassetid://135611116481587",
 	["Cerberus"] = "rbxassetid://103052472025415",
-
-	-- Epic
 	["Hydra"] = "rbxassetid://129788824744472",
 	["Chimera"] = "rbxassetid://92846288329362",
-
-	-- Legendary (waiting for images)
 	["Ancient Dragon"] = "rbxassetid://0",
 	["World Serpent"] = "rbxassetid://0",
 }
 
--- Print all image IDs for debugging
-print("[HatchUI] Creature Images Configured:")
-for name, id in pairs(CREATURE_IMAGES) do
-	print("  - " .. name .. ": " .. id)
-end
+-- ============================================
+-- EGG IMAGES (Add your egg decal IDs here)
+-- ============================================
+local EGG_IMAGES = {
+	basic = "rbxassetid://0",      -- Replace with your basic egg texture ID
+	fantasy = "rbxassetid://0",    -- Replace with your fantasy egg texture ID
+	mythic = "rbxassetid://0",     -- Replace with your mythic egg texture ID
+}
 
 -- ============================================
--- RARITY COLORS (From Expert Knowledge)
+-- RARITY COLORS
 -- ============================================
-
 local RARITY_COLORS = {
-	Common = Color3.fromRGB(169, 169, 169),    -- Gray
-	Uncommon = Color3.fromRGB(0, 255, 0),      -- Green
-	Rare = Color3.fromRGB(0, 100, 255),        -- Blue
-	Epic = Color3.fromRGB(150, 0, 255),        -- Purple
-	Legendary = Color3.fromRGB(255, 215, 0)    -- Gold
+	Common = Color3.fromRGB(169, 169, 169),
+	Uncommon = Color3.fromRGB(0, 255, 0),
+	Rare = Color3.fromRGB(0, 100, 255),
+	Epic = Color3.fromRGB(150, 0, 255),
+	Legendary = Color3.fromRGB(255, 215, 0)
 }
 
 local RARITY_GLOW = {
@@ -92,58 +77,133 @@ local RARITY_GLOW = {
 }
 
 -- ============================================
--- UI CREATION
+-- EGG ANIMATION UI
 -- ============================================
+local eggAnimationUI = nil
+local resultUI = nil
+local isAnimating = false
 
-local hatchPopup = nil
-local isShowing = false
-
-local function createHatchPopup()
-	-- Create ScreenGui
+local function createEggAnimationUI()
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "HatchPopupUI"
+	screenGui.Name = "EggAnimationUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.Parent = playerGui
+	
+	-- Dark overlay
+	local overlay = Instance.new("Frame")
+	overlay.Name = "Overlay"
+	overlay.Size = UDim2.new(1, 0, 1, 0)
+	overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	overlay.BackgroundTransparency = 0.5
+	overlay.BorderSizePixel = 0
+	overlay.Parent = screenGui
+	
+	-- Egg container
+	local eggContainer = Instance.new("Frame")
+	eggContainer.Name = "EggContainer"
+	eggContainer.Size = UDim2.new(0, 200, 0, 250)
+	eggContainer.Position = UDim2.new(0.5, -100, 0.5, -125)
+	eggContainer.BackgroundTransparency = 1
+	eggContainer.Parent = screenGui
+	
+	-- Egg image
+	local eggImage = Instance.new("ImageLabel")
+	eggImage.Name = "EggImage"
+	eggImage.Size = UDim2.new(1, 0, 0, 200)
+	eggImage.Position = UDim2.new(0, 0, 0, 0)
+	eggImage.BackgroundTransparency = 1
+	eggImage.Image = "rbxassetid://0" -- Will be set based on egg type
+	eggImage.ScaleType = Enum.ScaleType.Fit
+	eggImage.Parent = eggContainer
+	
+	-- Egg shadow (for depth)
+	local eggShadow = Instance.new("ImageLabel")
+	eggShadow.Name = "EggShadow"
+	eggShadow.Size = UDim2.new(0.8, 0, 0, 30)
+	eggShadow.Position = UDim2.new(0.1, 0, 1, -40)
+	eggShadow.BackgroundTransparency = 1
+	eggShadow.Image = "rbxassetid://0"
+	eggShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	eggShadow.ImageTransparency = 0.7
+	eggShadow.ScaleType = Enum.ScaleType.Fit
+	eggShadow.Parent = eggContainer
+	
+	-- Status text
+	local statusLabel = Instance.new("TextLabel")
+	statusLabel.Name = "StatusLabel"
+	statusLabel.Size = UDim2.new(1, 0, 0, 40)
+	statusLabel.Position = UDim2.new(0, 0, 1, -40)
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.Text = "Hatching..."
+	statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	statusLabel.TextScaled = true
+	statusLabel.Font = Enum.Font.GothamBold
+	statusLabel.Parent = eggContainer
+	
+	-- Particle container
+	local particleContainer = Instance.new("Frame")
+	particleContainer.Name = "Particles"
+	particleContainer.Size = UDim2.new(1, 0, 1, 0)
+	particleContainer.BackgroundTransparency = 1
+	particleContainer.Parent = screenGui
+	
+	return {
+		screenGui = screenGui,
+		overlay = overlay,
+		eggContainer = eggContainer,
+		eggImage = eggImage,
+		statusLabel = statusLabel,
+		particleContainer = particleContainer
+	}
+end
+
+-- ============================================
+-- RESULT UI (Creature Reveal)
+-- ============================================
+local function createResultUI()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "HatchResultUI"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = playerGui
 	
 	-- Main frame
 	local mainFrame = Instance.new("Frame")
-	mainFrame.Name = "HatchFrame"
-	mainFrame.Size = UDim2.new(0, 400, 0, 320)
-	mainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 450, 0, 400)
+	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -200)
 	mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Visible = false
 	mainFrame.Parent = screenGui
 	
-	-- Corner radius
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 20)
 	corner.Parent = mainFrame
 	
-	-- Glow border
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(255, 215, 0)
 	stroke.Thickness = 4
 	stroke.Parent = mainFrame
 	
-	-- Title label
+	-- Title
 	local titleLabel = Instance.new("TextLabel")
 	titleLabel.Name = "TitleLabel"
 	titleLabel.Size = UDim2.new(1, 0, 0, 50)
 	titleLabel.Position = UDim2.new(0, 0, 0, 10)
 	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = "🎉 NEW PET HATCHED! 🎉"
+	titleLabel.Text = "NEW PET HATCHED!"
 	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	titleLabel.TextScaled = true
 	titleLabel.Font = Enum.Font.GothamBold
 	titleLabel.Parent = mainFrame
 	
-	-- Pet name label
+	-- Pet name
 	local petNameLabel = Instance.new("TextLabel")
 	petNameLabel.Name = "PetNameLabel"
 	petNameLabel.Size = UDim2.new(1, 0, 0, 45)
-	petNameLabel.Position = UDim2.new(0, 0, 0, 70)
+	petNameLabel.Position = UDim2.new(0, 0, 0, 65)
 	petNameLabel.BackgroundTransparency = 1
 	petNameLabel.Text = "Pet Name"
 	petNameLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
@@ -155,7 +215,7 @@ local function createHatchPopup()
 	local rarityLabel = Instance.new("TextLabel")
 	rarityLabel.Name = "RarityLabel"
 	rarityLabel.Size = UDim2.new(1, 0, 0, 30)
-	rarityLabel.Position = UDim2.new(0, 0, 0, 115)
+	rarityLabel.Position = UDim2.new(0, 0, 0, 110)
 	rarityLabel.BackgroundTransparency = 1
 	rarityLabel.Text = "RARITY"
 	rarityLabel.TextColor3 = Color3.fromRGB(169, 169, 169)
@@ -163,60 +223,43 @@ local function createHatchPopup()
 	rarityLabel.Font = Enum.Font.GothamBold
 	rarityLabel.Parent = mainFrame
 	
-	-- Pet display frame (circular background)
+	-- Pet display (circular)
 	local petDisplay = Instance.new("Frame")
 	petDisplay.Name = "PetDisplay"
-	petDisplay.Size = UDim2.new(0, 100, 0, 100)
-	petDisplay.Position = UDim2.new(0.5, -50, 0, 155)
+	petDisplay.Size = UDim2.new(0, 120, 0, 120)
+	petDisplay.Position = UDim2.new(0.5, -60, 0, 150)
 	petDisplay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	petDisplay.BorderSizePixel = 0
-	petDisplay.ClipsDescendants = true -- Clip to circle
+	petDisplay.ClipsDescendants = true
 	petDisplay.Parent = mainFrame
 	
 	local petCorner = Instance.new("UICorner")
 	petCorner.CornerRadius = UDim.new(1, 0)
 	petCorner.Parent = petDisplay
 	
-	-- Pet display glow
 	local petStroke = Instance.new("UIStroke")
 	petStroke.Color = Color3.fromRGB(255, 255, 255)
 	petStroke.Thickness = 4
 	petStroke.Parent = petDisplay
 	
-	-- Creature 2D Image (Circular)
+	-- Pet image
 	local petImage = Instance.new("ImageLabel")
 	petImage.Name = "PetImage"
 	petImage.Size = UDim2.new(1, 0, 1, 0)
-	petImage.Position = UDim2.new(0, 0, 0, 0)
 	petImage.BackgroundTransparency = 1
-	petImage.Image = "" -- Will be set when showing
-	petImage.ScaleType = Enum.ScaleType.Crop -- Crop to fill circle
-	petImage.ImageColor3 = Color3.fromRGB(255, 255, 255) -- Ensure white tint
+	petImage.Image = ""
+	petImage.ScaleType = Enum.ScaleType.Crop
 	petImage.Parent = petDisplay
 	
-	-- Make image circular
 	local imageCorner = Instance.new("UICorner")
 	imageCorner.CornerRadius = UDim.new(1, 0)
 	imageCorner.Parent = petImage
-	
-	-- DEBUG: Image loading status
-	local imageStatus = Instance.new("TextLabel")
-	imageStatus.Name = "ImageStatus"
-	imageStatus.Size = UDim2.new(1, 0, 0, 20)
-	imageStatus.Position = UDim2.new(0, 0, 0.5, -10)
-	imageStatus.BackgroundTransparency = 1
-	imageStatus.Text = "📷"
-	imageStatus.TextColor3 = Color3.fromRGB(100, 100, 100)
-	imageStatus.TextScaled = true
-	imageStatus.Font = Enum.Font.GothamBold
-	imageStatus.Visible = false -- Hidden by default
-	imageStatus.Parent = petImage
 	
 	-- Stats frame
 	local statsFrame = Instance.new("Frame")
 	statsFrame.Name = "StatsFrame"
 	statsFrame.Size = UDim2.new(0.9, 0, 0, 35)
-	statsFrame.Position = UDim2.new(0.05, 0, 0, 265)
+	statsFrame.Position = UDim2.new(0.05, 0, 0, 285)
 	statsFrame.BackgroundTransparency = 1
 	statsFrame.Parent = mainFrame
 	
@@ -224,13 +267,13 @@ local function createHatchPopup()
 	statsLayout.FillDirection = Enum.FillDirection.Horizontal
 	statsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	statsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	statsLayout.Padding = UDim.new(0, 15)
+	statsLayout.Padding = UDim.new(0, 20)
 	statsLayout.Parent = statsFrame
 	
-	-- Speed stat
+	-- Speed
 	local speedLabel = Instance.new("TextLabel")
 	speedLabel.Name = "SpeedLabel"
-	speedLabel.Size = UDim2.new(0, 90, 0, 30)
+	speedLabel.Size = UDim2.new(0, 100, 0, 30)
 	speedLabel.BackgroundTransparency = 1
 	speedLabel.Text = "Speed: 0"
 	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -238,23 +281,12 @@ local function createHatchPopup()
 	speedLabel.Font = Enum.Font.GothamBold
 	speedLabel.Parent = statsFrame
 	
-	-- Jump stat
-	local jumpLabel = Instance.new("TextLabel")
-	jumpLabel.Name = "JumpLabel"
-	jumpLabel.Size = UDim2.new(0, 90, 0, 30)
-	jumpLabel.BackgroundTransparency = 1
-	jumpLabel.Text = "Jump: 0"
-	jumpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	jumpLabel.TextScaled = true
-	jumpLabel.Font = Enum.Font.GothamBold
-	jumpLabel.Parent = statsFrame
-	
-	-- Coins stat
+	-- Coins
 	local coinsLabel = Instance.new("TextLabel")
 	coinsLabel.Name = "CoinsLabel"
-	coinsLabel.Size = UDim2.new(0, 90, 0, 30)
+	coinsLabel.Size = UDim2.new(0, 100, 0, 30)
 	coinsLabel.BackgroundTransparency = 1
-	coinsLabel.Text = "x1 coins"
+	coinsLabel.Text = "1x Coins"
 	coinsLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 	coinsLabel.TextScaled = true
 	coinsLabel.Font = Enum.Font.GothamBold
@@ -263,8 +295,8 @@ local function createHatchPopup()
 	-- Close button
 	local closeButton = Instance.new("TextButton")
 	closeButton.Name = "CloseButton"
-	closeButton.Size = UDim2.new(0, 150, 0, 45)
-	closeButton.Position = UDim2.new(0.5, -75, 1, -5)
+	closeButton.Size = UDim2.new(0, 180, 0, 50)
+	closeButton.Position = UDim2.new(0.5, -90, 1, -10)
 	closeButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
 	closeButton.Text = "AWESOME!"
 	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -276,9 +308,9 @@ local function createHatchPopup()
 	closeCorner.CornerRadius = UDim.new(0, 10)
 	closeCorner.Parent = closeButton
 	
-	-- Click handler
 	closeButton.MouseButton1Click:Connect(function()
-		hideHatchPopup()
+		mainFrame.Visible = false
+		screenGui.Enabled = false
 	end)
 	
 	return {
@@ -289,107 +321,213 @@ local function createHatchPopup()
 		rarityLabel = rarityLabel,
 		petDisplay = petDisplay,
 		petImage = petImage,
-		imageStatus = imageStatus,
 		petStroke = petStroke,
-		speedLabel = speedLabel,
-		jumpLabel = jumpLabel,
-		coinsLabel = coinsLabel,
 		stroke = stroke,
+		speedLabel = speedLabel,
+		coinsLabel = coinsLabel,
 		closeButton = closeButton
 	}
 end
 
 -- ============================================
--- SHOW/HIDE FUNCTIONS
+-- SHAKE ANIMATION
 -- ============================================
+local function shakeEgg(eggImage, intensity, duration)
+	local startTime = tick()
+	local originalPosition = eggImage.Position
+	
+	while tick() - startTime < duration do
+		local offsetX = math.random(-intensity, intensity)
+		local offsetY = math.random(-intensity, intensity)
+		local rotation = math.random(-5, 5)
+		
+		eggImage.Position = UDim2.new(
+			originalPosition.X.Scale, originalPosition.X.Offset + offsetX,
+			originalPosition.Y.Scale, originalPosition.Y.Offset + offsetY
+		)
+		eggImage.Rotation = rotation
+		
+		task.wait(0.03)
+	end
+	
+	eggImage.Position = originalPosition
+	eggImage.Rotation = 0
+end
 
-function showHatchPopup(petData)
-	if isShowing then
-		hideHatchPopup()
-		task.wait(0.2)
+-- ============================================
+-- PARTICLE EFFECT
+-- ============================================
+local function spawnParticles(container, color, count)
+	for i = 1, count do
+		local particle = Instance.new("Frame")
+		particle.Size = UDim2.new(0, math.random(4, 10), 0, math.random(4, 10))
+		particle.Position = UDim2.new(0.5, math.random(-100, 100), 0.5, math.random(-100, 100))
+		particle.BackgroundColor3 = color or Color3.fromRGB(255, 255, 0)
+		particle.BorderSizePixel = 0
+		particle.Parent = container
+		
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = particle
+		
+		-- Animate outward
+		local angle = math.random() * math.pi * 2
+		local distance = math.random(50, 200)
+		local targetX = math.cos(angle) * distance
+		local targetY = math.sin(angle) * distance
+		
+		local tween = TweenService:Create(particle, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0.5, targetX, 0.5, targetY),
+			Size = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1
+		})
+		tween:Play()
+		
+		tween.Completed:Connect(function()
+			particle:Destroy()
+		end)
+	end
+end
+
+-- ============================================
+-- MAIN HATCH SEQUENCE
+-- ============================================
+local function playHatchSequence(petData, eggType)
+	if isAnimating then return end
+	isAnimating = true
+	
+	-- Create or get UI
+	if not eggAnimationUI then
+		eggAnimationUI = createEggAnimationUI()
 	end
 	
-	if not hatchPopup then
-		hatchPopup = createHatchPopup()
+	local ui = eggAnimationUI
+	ui.screenGui.Enabled = true
+	
+	-- Set egg image based on type
+	local eggImageId = EGG_IMAGES[eggType] or EGG_IMAGES.basic
+	if eggImageId and eggImageId ~= "rbxassetid://0" then
+		ui.eggImage.Image = eggImageId
+	else
+		-- Default egg appearance
+		ui.eggImage.BackgroundColor3 = Color3.fromRGB(200, 150, 100)
+		ui.eggImage.BackgroundTransparency = 0
 	end
 	
-	-- SAFELY update content with nil checks
-	hatchPopup.petNameLabel.Text = petData.name or "Unknown Pet"
-	hatchPopup.rarityLabel.Text = (petData.rarity or "Common"):upper()
+	-- Reset
+	ui.eggImage.Size = UDim2.new(1, 0, 0, 200)
+	ui.eggImage.Position = UDim2.new(0, 0, 0, 0)
+	ui.eggImage.ImageTransparency = 0
+	ui.statusLabel.Text = "Hatching..."
 	
-	-- Set rarity colors
+	-- Fade in overlay
+	ui.overlay.BackgroundTransparency = 1
+	TweenService:Create(ui.overlay, TweenInfo.new(0.3), {BackgroundTransparency = 0.5}):Play()
+	
+	-- PHASE 1: Egg appears and pulses
+	ui.eggContainer.Size = UDim2.new(0, 0, 0, 0)
+	TweenService:Create(ui.eggContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+		Size = UDim2.new(0, 200, 0, 250)
+	}):Play()
+	
+	task.wait(0.6)
+	
+	-- PHASE 2: Shaking (intensity increases)
+	ui.statusLabel.Text = "Something's moving..."
+	
+	-- Light shake
+	shakeEgg(ui.eggImage, 5, 0.5)
+	task.wait(0.2)
+	
+	-- Medium shake
+	shakeEgg(ui.eggImage, 10, 0.5)
+	task.wait(0.2)
+	
+	-- Heavy shake
+	ui.statusLabel.Text = "It's hatching!"
+	shakeEgg(ui.eggImage, 15, 0.6)
+	
+	-- PHASE 3: Hatch burst
+	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 215, 0)
+	spawnParticles(ui.particleContainer, rarityColor, 30)
+	
+	-- Flash effect
+	local flash = Instance.new("Frame")
+	flash.Size = UDim2.new(1, 0, 1, 0)
+	flash.BackgroundColor3 = Color3.new(1, 1, 1)
+	flash.BorderSizePixel = 0
+	flash.Parent = ui.screenGui
+	
+	TweenService:Create(flash, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+	
+	-- Egg scale down and fade
+	TweenService:Create(ui.eggImage, TweenInfo.new(0.3), {
+		Size = UDim2.new(1.5, 0, 0, 300),
+		ImageTransparency = 1
+	}):Play()
+	
+	task.wait(0.3)
+	flash:Destroy()
+	
+	-- Hide egg UI
+	ui.screenGui.Enabled = false
+	
+	-- PHASE 4: Show result
+	showResultPopup(petData)
+	
+	isAnimating = false
+end
+
+-- ============================================
+-- RESULT POPUP
+-- ============================================
+function showResultPopup(petData)
+	if not resultUI then
+		resultUI = createResultUI()
+	end
+	
+	local ui = resultUI
+	
+	-- Set content
+	ui.petNameLabel.Text = petData.name or "Unknown Pet"
+	ui.rarityLabel.Text = (petData.rarity or "Common"):upper()
+	
 	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 255, 255)
 	local glowColor = RARITY_GLOW[petData.rarity] or rarityColor
 	
-	hatchPopup.petNameLabel.TextColor3 = rarityColor
-	hatchPopup.rarityLabel.TextColor3 = rarityColor
-	hatchPopup.petDisplay.BackgroundColor3 = rarityColor
-	hatchPopup.petStroke.Color = glowColor
-	hatchPopup.stroke.Color = glowColor
+	ui.petNameLabel.TextColor3 = rarityColor
+	ui.rarityLabel.TextColor3 = rarityColor
+	ui.petDisplay.BackgroundColor3 = rarityColor
+	ui.petStroke.Color = glowColor
+	ui.stroke.Color = glowColor
 	
-	-- Set creature image with DEBUG logging
+	-- Set creature image
 	local imageId = CREATURE_IMAGES[petData.name] or ""
-	print("[HatchUI] Looking for image: '" .. petData.name .. "' -> ID: '" .. imageId .. "'")
-	
 	if imageId and imageId ~= "" and imageId ~= "rbxassetid://0" then
-		hatchPopup.petImage.Image = imageId
-		hatchPopup.petImage.Visible = true
-		hatchPopup.imageStatus.Visible = false
-		print("[HatchUI] Set image to: " .. imageId)
-		
-		-- Try to preload the image
-		task.spawn(function()
-			local success, err = pcall(function()
-				ContentProvider:PreloadAsync({hatchPopup.petImage})
-			end)
-			if success then
-				print("[HatchUI] Image preloaded successfully")
-			else
-				warn("[HatchUI] Image preload failed: " .. tostring(err))
-			end
-		end)
+		ui.petImage.Image = imageId
+		ui.petImage.Visible = true
 	else
-		-- No image found - show debug info
-		hatchPopup.petImage.Visible = false
-		hatchPopup.imageStatus.Visible = true
-		hatchPopup.imageStatus.Text = "❓"
-		warn("[HatchUI] No image found for: '" .. petData.name .. "'")
-		
-		-- List available images for debugging
-		print("[HatchUI] Available creature images:")
-		for name, _ in pairs(CREATURE_IMAGES) do
-			print("  - " .. name)
-		end
+		ui.petImage.Visible = false
 	end
 	
-	-- Update stats safely
+	-- Stats
 	local stats = petData.stats or {}
-	hatchPopup.speedLabel.Text = "Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
-	hatchPopup.jumpLabel.Text = "Jump: " .. (tonumber(stats.jump) or tonumber(petData.jump) or 0)
+	ui.speedLabel.Text = "Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
+	local coinMult = tonumber(stats.coins) or tonumber(petData.coins) or 1
+	ui.coinsLabel.Text = coinMult .. "x Coins"
 	
-	-- Coin multiplier display - use coin emoji or text
-	local coinMultiplier = tonumber(stats.coins) or tonumber(petData.coins) or 1
-	hatchPopup.coinsLabel.Text = coinMultiplier .. "x Coins"
+	-- Show with animation
+	ui.screenGui.Enabled = true
+	ui.mainFrame.Visible = true
+	ui.mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	ui.mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 	
-	-- Show popup with animation
-	hatchPopup.mainFrame.Visible = true
-	hatchPopup.mainFrame.Size = UDim2.new(0, 0, 0, 0)
-	hatchPopup.mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TweenService:Create(ui.mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 450, 0, 400),
+		Position = UDim2.new(0.5, -225, 0.5, -200)
+	}):Play()
 	
-	isShowing = true
-	
-	-- Animate in with Back easing
-	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	targetSize = UDim2.new(0, 400, 0, 320)
-	targetPos = UDim2.new(0.5, -200, 0.5, -160)
-	
-	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
-	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})
-	
-	sizeTween:Play()
-	posTween:Play()
-	
-	-- Play sound if available
+	-- Play sound
 	local SoundManager = nil
 	pcall(function()
 		SoundManager = require(ReplicatedStorage.Modules:WaitForChild("SoundManager", 2))
@@ -398,73 +536,38 @@ function showHatchPopup(petData)
 	if SoundManager then
 		if petData.rarity == "Legendary" then
 			SoundManager:Play("LegendaryHatch")
-		elseif petData.rarity == "Rare" then
+		elseif petData.rarity == "Rare" or petData.rarity == "Epic" then
 			SoundManager:Play("RareHatch")
 		else
 			SoundManager:Play("HatchSuccess")
 		end
 	end
 	
-	-- Update Equipped UI
+	-- Update equipped UI
 	updateEquippedUI(petData)
-	
-	print("[HatchUI] Showing hatch popup for " .. petData.name .. " (" .. petData.rarity .. ")")
 end
-
-function hideHatchPopup()
-	if not hatchPopup or not isShowing then
-		return
-	end
-	
-	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	targetSize = UDim2.new(0, 0, 0, 0)
-	targetPos = UDim2.new(0.5, 0, 0.5, 0)
-	
-	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
-	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})
-	
-	sizeTween:Play()
-	posTween:Play()
-	
-	sizeTween.Completed:Connect(function()
-		hatchPopup.mainFrame.Visible = false
-		isShowing = false
-	end)
-end
-
--- ============================================
--- UPDATE EQUIPPED UI
--- ============================================
 
 function updateEquippedUI(petData)
-	-- Fire event to EquippedUI if it exists
 	local equippedEvent = ReplicatedStorage:FindFirstChild("EquippedPetEvent")
 	if equippedEvent then
 		equippedEvent:FireClient(player, petData)
 	end
-	
-	-- Also set player attributes for persistence
 	player:SetAttribute("EquippedPet", petData.id)
 	player:SetAttribute("EquippedPetName", petData.name)
 	player:SetAttribute("EquippedPetRarity", petData.rarity)
 end
 
 -- ============================================
--- REMOTE EVENT HANDLER (FIXED FOR SINGLE TABLE FORMAT)
+-- REMOTE EVENT HANDLER
 -- ============================================
-
 hatchEvent.OnClientEvent:Connect(function(data)
-	-- Server sends single table: {success = false, error = "..."} or {success = true, name = "...", ...}
 	if not data or typeof(data) ~= "table" then
-		warn("[HatchUI] Invalid data received from server")
+		warn("[HatchUI] Invalid data received")
 		return
 	end
 	
 	if data.success == false then
-		-- Show error notification
-		local errorMessage = data.error or "Hatch failed"
-		print("[HatchUI] Hatch error: " .. errorMessage)
-		
+		-- Show error
 		local errorGui = Instance.new("ScreenGui")
 		errorGui.Name = "ErrorNotification"
 		errorGui.Parent = playerGui
@@ -475,15 +578,13 @@ hatchEvent.OnClientEvent:Connect(function(data)
 		errorFrame.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 		errorFrame.Parent = errorGui
 		
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
-		corner.Parent = errorFrame
+		Instance.new("UICorner", errorFrame).CornerRadius = UDim.new(0, 10)
 		
 		local errorLabel = Instance.new("TextLabel")
 		errorLabel.Size = UDim2.new(1, -20, 1, 0)
 		errorLabel.Position = UDim2.new(0, 10, 0, 0)
 		errorLabel.BackgroundTransparency = 1
-		errorLabel.Text = "❌ " .. errorMessage
+		errorLabel.Text = "❌ " .. (data.error or "Hatch failed")
 		errorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 		errorLabel.TextScaled = true
 		errorLabel.Font = Enum.Font.GothamBold
@@ -492,29 +593,26 @@ hatchEvent.OnClientEvent:Connect(function(data)
 		task.delay(3, function()
 			errorGui:Destroy()
 		end)
-		
 		return
 	end
 	
-	-- Success - show hatch popup
 	if data.success == true then
-		showHatchPopup(data)
+		-- Play full egg hatch sequence
+		playHatchSequence(data, data.eggType or "basic")
 	end
 end)
 
 -- ============================================
 -- PUBLIC API
 -- ============================================
-
 function requestHatch(eggType)
 	print("[HatchUI] Requesting hatch for " .. (eggType or "basic") .. " egg")
 	hatchRequestEvent:FireServer(eggType)
 end
 
-print("[HatchUI] Ready! Listening for hatch events.")
+print("[HatchUI] Ready! Egg animation system loaded.")
 
 return {
 	requestHatch = requestHatch,
-	showHatchPopup = showHatchPopup,
-	hideHatchPopup = hideHatchPopup
+	showResultPopup = showResultPopup
 }
