@@ -14,6 +14,23 @@ print("[InventorySystem] Loading...")
 -- CONFIG
 -- ============================================
 
+-- Creature Images (Upload to Roblox and paste IDs here)
+local CREATURE_IMAGES = {
+	["Tiny Dragon"] = "rbxassetid://0",
+	["Baby Unicorn"] = "rbxassetid://0",
+	["Mini Griffin"] = "rbxassetid://0",
+	["Fire Fox"] = "rbxassetid://0",
+	["Ice Wolf"] = "rbxassetid://0",
+	["Thunder Bird"] = "rbxassetid://0",
+	["Phoenix"] = "rbxassetid://0",
+	["Kraken"] = "rbxassetid://0",
+	["Cerberus"] = "rbxassetid://0",
+	["Hydra"] = "rbxassetid://0",
+	["Chimera"] = "rbxassetid://0",
+	["Ancient Dragon"] = "rbxassetid://0",
+	["World Serpent"] = "rbxassetid://0",
+}
+
 local RARITY_COLORS = {
 	All = Color3.fromRGB(150, 150, 150),
 	Common = Color3.fromRGB(169, 169, 169),
@@ -194,7 +211,7 @@ local function createInventoryUI()
 		border.Thickness = 3
 		border.Parent = card
 		
-		-- Pet icon (colored circle)
+		-- Pet icon container (colored circle background)
 		local icon = Instance.new("Frame")
 		icon.Name = "Icon"
 		icon.Size = UDim2.new(0, 80, 0, 80)
@@ -204,6 +221,17 @@ local function createInventoryUI()
 		icon.Parent = card
 		
 		Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
+		
+		-- Creature 2D Image
+		local petImage = Instance.new("ImageLabel")
+		petImage.Name = "PetImage"
+		petImage.Size = UDim2.new(1, 0, 1, 0)
+		petImage.BackgroundTransparency = 1
+		petImage.Image = CREATURE_IMAGES[petData.name] or ""
+		petImage.ScaleType = Enum.ScaleType.Fit
+		petImage.Parent = icon
+		
+		Instance.new("UICorner", petImage).CornerRadius = UDim.new(1, 0)
 		
 		-- Pet name
 		local nameLabel = Instance.new("TextLabel")

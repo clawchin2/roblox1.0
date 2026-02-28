@@ -36,6 +36,35 @@ end
 print("[HatchUI] Remote events connected")
 
 -- ============================================
+-- CREATURE IMAGE IDs (Upload your images to Roblox and paste IDs here)
+-- ============================================
+
+local CREATURE_IMAGES = {
+	-- Common
+	["Tiny Dragon"] = "rbxassetid://0", -- Replace with your image ID
+	["Baby Unicorn"] = "rbxassetid://0",
+	["Mini Griffin"] = "rbxassetid://0",
+	
+	-- Uncommon
+	["Fire Fox"] = "rbxassetid://0",
+	["Ice Wolf"] = "rbxassetid://0",
+	["Thunder Bird"] = "rbxassetid://0",
+	
+	-- Rare
+	["Phoenix"] = "rbxassetid://0",
+	["Kraken"] = "rbxassetid://0",
+	["Cerberus"] = "rbxassetid://0",
+	
+	-- Epic
+	["Hydra"] = "rbxassetid://0",
+	["Chimera"] = "rbxassetid://0",
+	
+	-- Legendary
+	["Ancient Dragon"] = "rbxassetid://0",
+	["World Serpent"] = "rbxassetid://0",
+}
+
+-- ============================================
 -- RARITY COLORS (From Expert Knowledge)
 -- ============================================
 
@@ -144,6 +173,15 @@ local function createHatchPopup()
 	petStroke.Thickness = 4
 	petStroke.Parent = petDisplay
 	
+	-- Creature 2D Image
+	local petImage = Instance.new("ImageLabel")
+	petImage.Name = "PetImage"
+	petImage.Size = UDim2.new(1, 0, 1, 0)
+	petImage.BackgroundTransparency = 1
+	petImage.Image = "" -- Will be set when showing
+	petImage.ScaleType = Enum.ScaleType.Fit
+	petImage.Parent = petDisplay
+	
 	-- Stats frame
 	local statsFrame = Instance.new("Frame")
 	statsFrame.Name = "StatsFrame"
@@ -220,6 +258,7 @@ local function createHatchPopup()
 		petNameLabel = petNameLabel,
 		rarityLabel = rarityLabel,
 		petDisplay = petDisplay,
+		petImage = petImage,
 		petStroke = petStroke,
 		speedLabel = speedLabel,
 		jumpLabel = jumpLabel,
@@ -243,9 +282,9 @@ function showHatchPopup(petData)
 		hatchPopup = createHatchPopup()
 	end
 	
-	-- Update content
-	hatchPopup.petNameLabel.Text = petData.name
-	hatchPopup.rarityLabel.Text = petData.rarity:upper()
+	-- SAFELY update content with nil checks
+	hatchPopup.petNameLabel.Text = petData.name or "Unknown Pet"
+	hatchPopup.rarityLabel.Text = (petData.rarity or "Common"):upper()
 	
 	-- Set rarity colors
 	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 255, 255)
@@ -257,11 +296,21 @@ function showHatchPopup(petData)
 	hatchPopup.petStroke.Color = glowColor
 	hatchPopup.stroke.Color = glowColor
 	
-	-- Update stats
-	local stats = petData.stats or {speed = 0, jump = 0, coins = 1.0}
-	hatchPopup.speedLabel.Text = "⚡ Speed: " .. (stats.speed or 0)
-	hatchPopup.jumpLabel.Text = "⬆️ Jump: " .. (stats.jump or 0)
-	hatchPopup.coinsLabel.Text = "🪙 x" .. (stats.coins or 1.0)
+	-- Set creature image
+	local imageId = CREATURE_IMAGES[petData.name] or ""
+	if imageId and imageId ~= "" and imageId ~= "rbxassetid://0" then
+		hatchPopup.petImage.Image = imageId
+		hatchPopup.petImage.Visible = true
+	else
+		-- No image yet, show placeholder text
+		hatchPopup.petImage.Visible = false
+	end
+	
+	-- Update stats safely
+	local stats = petData.stats or {}
+	hatchPopup.speedLabel.Text = "⚡ Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
+	hatchPopup.jumpLabel.Text = "⬆️ Jump: " .. (tonumber(stats.jump) or tonumber(petData.jump) or 0)
+	hatchPopup.coinsLabel.Text = "🪙 x" .. (tonumber(stats.coins) or tonumber(petData.coins) or 1.0)
 	
 	-- Show popup with animation
 	hatchPopup.mainFrame.Visible = true
