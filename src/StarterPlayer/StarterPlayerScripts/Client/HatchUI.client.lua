@@ -40,24 +40,24 @@ print("[HatchUI] Remote events connected")
 -- ============================================
 
 local CREATURE_IMAGES = {
-	-- Common
-	["Tiny Dragon"] = "rbxassetid://82027454638425",
-	["Baby Unicorn"] = "rbxassetid://119581593087588",
-	["Mini Griffin"] = "rbxassetid://114284266997340",
+	-- Common (Image ID = Decal ID - 1)
+	["Tiny Dragon"] = "rbxassetid://82027454638424",
+	["Baby Unicorn"] = "rbxassetid://119581593087587",
+	["Mini Griffin"] = "rbxassetid://114284266997339",
 
 	-- Uncommon
-	["Fire Fox"] = "rbxassetid://114120834456819",
-	["Ice Wolf"] = "rbxassetid://107644592223934",
-	["Thunder Bird"] = "rbxassetid://119968731691179",
+	["Fire Fox"] = "rbxassetid://114120834456818",
+	["Ice Wolf"] = "rbxassetid://107644592223933",
+	["Thunder Bird"] = "rbxassetid://119968731691178",
 
 	-- Rare
-	["Phoenix"] = "rbxassetid://76964569512290",
-	["Kraken"] = "rbxassetid://95763933606223",
-	["Cerberus"] = "rbxassetid://85427973646432",
+	["Phoenix"] = "rbxassetid://76964569512289",
+	["Kraken"] = "rbxassetid://95763933606222",
+	["Cerberus"] = "rbxassetid://85427973646431",
 
 	-- Epic
-	["Hydra"] = "rbxassetid://80293685199043",
-	["Chimera"] = "rbxassetid://104654764297241",
+	["Hydra"] = "rbxassetid://80293685199042",
+	["Chimera"] = "rbxassetid://104654764297240",
 
 	-- Legendary (waiting for images)
 	["Ancient Dragon"] = "rbxassetid://0",
