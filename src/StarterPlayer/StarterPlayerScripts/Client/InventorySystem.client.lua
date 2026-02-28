@@ -17,17 +17,17 @@ print("[InventorySystem] Loading...")
 
 -- Creature Images (Image ID = Decal ID - 1)
 local CREATURE_IMAGES = {
-	["Tiny Dragon"] = "rbxassetid://82027454638424",
-	["Baby Unicorn"] = "rbxassetid://119581593087587",
-	["Mini Griffin"] = "rbxassetid://114284266997339",
-	["Fire Fox"] = "rbxassetid://114120834456818",
-	["Ice Wolf"] = "rbxassetid://107644592223933",
-	["Thunder Bird"] = "rbxassetid://119968731691178",
-	["Phoenix"] = "rbxassetid://76964569512289",
-	["Kraken"] = "rbxassetid://95763933606222",
-	["Cerberus"] = "rbxassetid://85427973646431",
-	["Hydra"] = "rbxassetid://80293685199042",
-	["Chimera"] = "rbxassetid://104654764297240",
+	["Tiny Dragon"] = "rbxassetid://100352058348043",
+	["Baby Unicorn"] = "rbxassetid://111331437291244",
+	["Mini Griffin"] = "rbxassetid://111177400493982",
+	["Fire Fox"] = "rbxassetid://99173862361424",
+	["Ice Wolf"] = "rbxassetid://85023087116411",
+	["Thunder Bird"] = "rbxassetid://115102972096254",
+	["Phoenix"] = "rbxassetid://118782453217813",
+	["Kraken"] = "rbxassetid://135611116481587",
+	["Cerberus"] = "rbxassetid://103052472025415",
+	["Hydra"] = "rbxassetid://129788824744472",
+	["Chimera"] = "rbxassetid://92846288329362",
 	["Ancient Dragon"] = "rbxassetid://0",
 	["World Serpent"] = "rbxassetid://0",
 }
