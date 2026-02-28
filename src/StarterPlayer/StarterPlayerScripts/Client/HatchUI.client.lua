@@ -183,16 +183,21 @@ local function createHatchPopup()
 	petStroke.Thickness = 4
 	petStroke.Parent = petDisplay
 	
-	-- Creature 2D Image
+	-- Creature 2D Image (Circular)
 	local petImage = Instance.new("ImageLabel")
 	petImage.Name = "PetImage"
 	petImage.Size = UDim2.new(1, 0, 1, 0)
 	petImage.Position = UDim2.new(0, 0, 0, 0)
 	petImage.BackgroundTransparency = 1
 	petImage.Image = "" -- Will be set when showing
-	petImage.ScaleType = Enum.ScaleType.Fit
+	petImage.ScaleType = Enum.ScaleType.Crop -- Crop to fill circle
 	petImage.ImageColor3 = Color3.fromRGB(255, 255, 255) -- Ensure white tint
 	petImage.Parent = petDisplay
+	
+	-- Make image circular
+	local imageCorner = Instance.new("UICorner")
+	imageCorner.CornerRadius = UDim.new(1, 0)
+	imageCorner.Parent = petImage
 	
 	-- DEBUG: Image loading status
 	local imageStatus = Instance.new("TextLabel")
@@ -227,7 +232,7 @@ local function createHatchPopup()
 	speedLabel.Name = "SpeedLabel"
 	speedLabel.Size = UDim2.new(0, 90, 0, 30)
 	speedLabel.BackgroundTransparency = 1
-	speedLabel.Text = "⚡ Speed: 0"
+	speedLabel.Text = "Speed: 0"
 	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	speedLabel.TextScaled = true
 	speedLabel.Font = Enum.Font.GothamBold
@@ -238,7 +243,7 @@ local function createHatchPopup()
 	jumpLabel.Name = "JumpLabel"
 	jumpLabel.Size = UDim2.new(0, 90, 0, 30)
 	jumpLabel.BackgroundTransparency = 1
-	jumpLabel.Text = "⬆️ Jump: 0"
+	jumpLabel.Text = "Jump: 0"
 	jumpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	jumpLabel.TextScaled = true
 	jumpLabel.Font = Enum.Font.GothamBold
@@ -249,7 +254,7 @@ local function createHatchPopup()
 	coinsLabel.Name = "CoinsLabel"
 	coinsLabel.Size = UDim2.new(0, 90, 0, 30)
 	coinsLabel.BackgroundTransparency = 1
-	coinsLabel.Text = "🪙 x1.0"
+	coinsLabel.Text = "x1 coins"
 	coinsLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 	coinsLabel.TextScaled = true
 	coinsLabel.Font = Enum.Font.GothamBold
@@ -359,9 +364,12 @@ function showHatchPopup(petData)
 	
 	-- Update stats safely
 	local stats = petData.stats or {}
-	hatchPopup.speedLabel.Text = "⚡ Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
-	hatchPopup.jumpLabel.Text = "⬆️ Jump: " .. (tonumber(stats.jump) or tonumber(petData.jump) or 0)
-	hatchPopup.coinsLabel.Text = "🪙 x" .. (tonumber(stats.coins) or tonumber(petData.coins) or 1.0)
+	hatchPopup.speedLabel.Text = "Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
+	hatchPopup.jumpLabel.Text = "Jump: " .. (tonumber(stats.jump) or tonumber(petData.jump) or 0)
+	
+	-- Coin multiplier display
+	local coinMultiplier = tonumber(stats.coins) or tonumber(petData.coins) or 1
+	hatchPopup.coinsLabel.Text = "x" .. coinMultiplier .. " coins"
 	
 	-- Show popup with animation
 	hatchPopup.mainFrame.Visible = true

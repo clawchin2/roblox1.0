@@ -246,7 +246,7 @@ local function createInventoryUI()
 			warn("[InventorySystem] No image found for: " .. petData.name)
 		end
 		
-		petImage.ScaleType = Enum.ScaleType.Fit
+		petImage.ScaleType = Enum.ScaleType.Crop
 		petImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 		petImage.Parent = icon
 		
@@ -264,13 +264,13 @@ local function createInventoryUI()
 		nameLabel.Font = Enum.Font.GothamBold
 		nameLabel.Parent = card
 		
-		-- Power stat
+		-- Speed stat
 		local powerLabel = Instance.new("TextLabel")
 		powerLabel.Name = "Power"
 		powerLabel.Size = UDim2.new(1, -10, 0, 20)
 		powerLabel.Position = UDim2.new(0, 5, 0, 125)
 		powerLabel.BackgroundTransparency = 1
-		powerLabel.Text = "⚡ " .. (petData.power or 0)
+		powerLabel.Text = "Speed: " .. (petData.power or 0)
 		powerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 		powerLabel.TextSize = 14
 		powerLabel.Font = Enum.Font.Gotham
@@ -282,7 +282,7 @@ local function createInventoryUI()
 		coinsLabel.Size = UDim2.new(1, -10, 0, 20)
 		coinsLabel.Position = UDim2.new(0, 5, 0, 145)
 		coinsLabel.BackgroundTransparency = 1
-		coinsLabel.Text = "🪙 x" .. (petData.coins or 1)
+		coinsLabel.Text = "x" .. (petData.coins or 1) .. " coins"
 		coinsLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 		coinsLabel.TextSize = 14
 		coinsLabel.Font = Enum.Font.Gotham
