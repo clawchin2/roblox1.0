@@ -330,7 +330,7 @@ local function createResultUI()
 end
 
 -- ============================================
--- SHAKE ANIMATION
+-- SHAKE ANIMATION (Slower, more dramatic)
 -- ============================================
 local function shakeEgg(eggImage, intensity, duration)
 	local startTime = tick()
@@ -339,7 +339,7 @@ local function shakeEgg(eggImage, intensity, duration)
 	while tick() - startTime < duration do
 		local offsetX = math.random(-intensity, intensity)
 		local offsetY = math.random(-intensity, intensity)
-		local rotation = math.random(-5, 5)
+		local rotation = math.random(-8, 8)
 		
 		eggImage.Position = UDim2.new(
 			originalPosition.X.Scale, originalPosition.X.Offset + offsetX,
@@ -347,7 +347,7 @@ local function shakeEgg(eggImage, intensity, duration)
 		)
 		eggImage.Rotation = rotation
 		
-		task.wait(0.03)
+		task.wait(0.05) -- Slower shake updates
 	end
 	
 	eggImage.Position = originalPosition
@@ -390,11 +390,43 @@ local function spawnParticles(container, color, count)
 end
 
 -- ============================================
+-- CLOSE SHOP/PURCHASE WINDOWS
+-- ============================================
+local function closeShopWindows()
+	-- Close ShopUI
+	local shopUI = playerGui:FindFirstChild("ShopUI")
+	if shopUI then
+		shopUI.Enabled = false
+	end
+	
+	-- Close EggShop
+	local eggShop = playerGui:FindFirstChild("EggShop")
+	if eggShop then
+		eggShop.Enabled = false
+	end
+	
+	-- Close any ScreenGui with "Shop" in name
+	for _, gui in ipairs(playerGui:GetChildren()) do
+		if gui:IsA("ScreenGui") and (gui.Name:find("Shop") or gui.Name:find("Purchase")) then
+			gui.Enabled = false
+		end
+	end
+	
+	print("[HatchUI] Closed shop windows")
+end
+
+-- ============================================
 -- MAIN HATCH SEQUENCE
 -- ============================================
 local function playHatchSequence(petData, eggType)
 	if isAnimating then return end
 	isAnimating = true
+	
+	-- CLOSE SHOP WINDOWS FIRST
+	closeShopWindows()
+	
+	-- Brief pause after closing shop before animation starts
+	task.wait(0.3)
 	
 	-- Create or get UI
 	if not eggAnimationUI then
@@ -418,56 +450,61 @@ local function playHatchSequence(petData, eggType)
 	ui.eggImage.Size = UDim2.new(1, 0, 0, 200)
 	ui.eggImage.Position = UDim2.new(0, 0, 0, 0)
 	ui.eggImage.ImageTransparency = 0
+	ui.eggImage.Rotation = 0
 	ui.statusLabel.Text = "Hatching..."
 	
-	-- Fade in overlay
+	-- Fade in overlay (slower)
 	ui.overlay.BackgroundTransparency = 1
-	TweenService:Create(ui.overlay, TweenInfo.new(0.3), {BackgroundTransparency = 0.5}):Play()
+	TweenService:Create(ui.overlay, TweenInfo.new(0.5), {BackgroundTransparency = 0.5}):Play()
 	
-	-- PHASE 1: Egg appears and pulses
+	-- PHASE 1: Egg appears and pulses (slower)
 	ui.eggContainer.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(ui.eggContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+	TweenService:Create(ui.eggContainer, TweenInfo.new(0.8, Enum.EasingStyle.Back), {
 		Size = UDim2.new(0, 200, 0, 250)
 	}):Play()
 	
-	task.wait(0.6)
+	task.wait(1.0)
 	
-	-- PHASE 2: Shaking (intensity increases)
+	-- PHASE 2: Shaking (intensity increases - LONGER DURATION)
 	ui.statusLabel.Text = "Something's moving..."
 	
-	-- Light shake
-	shakeEgg(ui.eggImage, 5, 0.5)
-	task.wait(0.2)
+	-- Light shake (longer)
+	shakeEgg(ui.eggImage, 4, 1.0)
+	task.wait(0.4)
 	
-	-- Medium shake
-	shakeEgg(ui.eggImage, 10, 0.5)
-	task.wait(0.2)
+	-- Medium shake (longer)
+	ui.statusLabel.Text = "Something is stirring..."
+	shakeEgg(ui.eggImage, 8, 1.2)
+	task.wait(0.4)
 	
-	-- Heavy shake
+	-- Heavy shake (longer)
 	ui.statusLabel.Text = "It's hatching!"
-	shakeEgg(ui.eggImage, 15, 0.6)
+	shakeEgg(ui.eggImage, 15, 1.5)
 	
-	-- PHASE 3: Hatch burst
+	-- PHASE 3: Hatch burst (slower)
 	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 215, 0)
-	spawnParticles(ui.particleContainer, rarityColor, 30)
+	spawnParticles(ui.particleContainer, rarityColor, 40)
 	
-	-- Flash effect
+	-- Flash effect (longer)
 	local flash = Instance.new("Frame")
 	flash.Size = UDim2.new(1, 0, 1, 0)
 	flash.BackgroundColor3 = Color3.new(1, 1, 1)
 	flash.BorderSizePixel = 0
 	flash.Parent = ui.screenGui
 	
-	TweenService:Create(flash, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+	TweenService:Create(flash, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
 	
-	-- Egg scale down and fade
-	TweenService:Create(ui.eggImage, TweenInfo.new(0.3), {
-		Size = UDim2.new(1.5, 0, 0, 300),
+	-- Egg scale down and fade (slower)
+	TweenService:Create(ui.eggImage, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+		Size = UDim2.new(1.8, 0, 0, 360),
 		ImageTransparency = 1
 	}):Play()
 	
-	task.wait(0.3)
+	task.wait(0.6)
 	flash:Destroy()
+	
+	-- Pause before showing result (dramatic effect)
+	task.wait(0.5)
 	
 	-- Hide egg UI
 	ui.screenGui.Enabled = false
