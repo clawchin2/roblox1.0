@@ -391,21 +391,28 @@ function updateEquippedUI(petData)
 end
 
 -- ============================================
--- REMOTE EVENT HANDLER (FIXED)
+-- REMOTE EVENT HANDLER (FIXED FOR SINGLE TABLE FORMAT)
 -- ============================================
 
-hatchEvent.OnClientEvent:Connect(function(petData, errorMessage)
-	if errorMessage then
+hatchEvent.OnClientEvent:Connect(function(data)
+	-- Server sends single table: {success = false, error = "..."} or {success = true, name = "...", ...}
+	if not data or typeof(data) ~= "table" then
+		warn("[HatchUI] Invalid data received from server")
+		return
+	end
+	
+	if data.success == false then
+		-- Show error notification
+		local errorMessage = data.error or "Hatch failed"
 		print("[HatchUI] Hatch error: " .. errorMessage)
 		
-		-- Show error notification
 		local errorGui = Instance.new("ScreenGui")
 		errorGui.Name = "ErrorNotification"
 		errorGui.Parent = playerGui
 		
 		local errorFrame = Instance.new("Frame")
-		errorFrame.Size = UDim2.new(0, 300, 0, 60)
-		errorFrame.Position = UDim2.new(0.5, -150, 0, 100)
+		errorFrame.Size = UDim2.new(0, 350, 0, 80)
+		errorFrame.Position = UDim2.new(0.5, -175, 0, 100)
 		errorFrame.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 		errorFrame.Parent = errorGui
 		
@@ -414,9 +421,10 @@ hatchEvent.OnClientEvent:Connect(function(petData, errorMessage)
 		corner.Parent = errorFrame
 		
 		local errorLabel = Instance.new("TextLabel")
-		errorLabel.Size = UDim2.new(1, 0, 1, 0)
+		errorLabel.Size = UDim2.new(1, -20, 1, 0)
+		errorLabel.Position = UDim2.new(0, 10, 0, 0)
 		errorLabel.BackgroundTransparency = 1
-		errorLabel.Text = errorMessage
+		errorLabel.Text = "❌ " .. errorMessage
 		errorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 		errorLabel.TextScaled = true
 		errorLabel.Font = Enum.Font.GothamBold
@@ -429,8 +437,9 @@ hatchEvent.OnClientEvent:Connect(function(petData, errorMessage)
 		return
 	end
 	
-	if petData then
-		showHatchPopup(petData)
+	-- Success - show hatch popup
+	if data.success == true then
+		showHatchPopup(data)
 	end
 end)
 
