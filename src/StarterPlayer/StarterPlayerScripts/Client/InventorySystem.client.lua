@@ -16,17 +16,17 @@ print("[InventorySystem] Loading...")
 
 -- Creature Images (Upload to Roblox and paste IDs here)
 local CREATURE_IMAGES = {
-	["Tiny Dragon"] = "rbxassetid://132863194657002",
-	["Baby Unicorn"] = "rbxassetid://121911340159081",
-	["Mini Griffin"] = "rbxassetid://102347706338332",
-	["Fire Fox"] = "rbxassetid://102332791705833",
-	["Ice Wolf"] = "rbxassetid://74506379336471",
-	["Thunder Bird"] = "rbxassetid://118787300336495",
-	["Phoenix"] = "rbxassetid://132173897236049",
-	["Kraken"] = "rbxassetid://85743086798858",
-	["Cerberus"] = "rbxassetid://91593792322682",
-	["Hydra"] = "rbxassetid://107740984432083",
-	["Chimera"] = "rbxassetid://95033608570054",
+	["Tiny Dragon"] = "rbxassetid://82027454638425",
+	["Baby Unicorn"] = "rbxassetid://119581593087588",
+	["Mini Griffin"] = "rbxassetid://114284266997340",
+	["Fire Fox"] = "rbxassetid://114120834456819",
+	["Ice Wolf"] = "rbxassetid://107644592223934",
+	["Thunder Bird"] = "rbxassetid://119968731691179",
+	["Phoenix"] = "rbxassetid://76964569512290",
+	["Kraken"] = "rbxassetid://95763933606223",
+	["Cerberus"] = "rbxassetid://85427973646432",
+	["Hydra"] = "rbxassetid://80293685199043",
+	["Chimera"] = "rbxassetid://104654764297241",
 	["Ancient Dragon"] = "rbxassetid://0",
 	["World Serpent"] = "rbxassetid://0",
 }
