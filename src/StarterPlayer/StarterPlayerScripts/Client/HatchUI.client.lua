@@ -396,6 +396,92 @@ end
 
 print("[HatchUI] Ready! Listening for hatch events.")
 
+-- ============================================
+-- PETS BUTTON (Added here since HatchUI works)
+-- ============================================
+
+task.spawn(function()
+	-- Wait a bit for everything to load
+	task.wait(2)
+	
+	local gameUI = playerGui:FindFirstChild("GameUI")
+	if not gameUI then
+		warn("[HatchUI] Cannot create PETS button - GameUI not found")
+		return
+	end
+	
+	print("[HatchUI] Creating PETS button...")
+	
+	local petsBtn = Instance.new("TextButton")
+	petsBtn.Name = "PetsButton"
+	petsBtn.Size = UDim2.new(0, 120, 0, 45)
+	petsBtn.Position = UDim2.new(0, 20, 0, 100)
+	petsBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+	petsBtn.Text = "🎒 PETS"
+	petsBtn.TextSize = 20
+	petsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	petsBtn.Font = Enum.Font.GothamBold
+	petsBtn.Parent = gameUI
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = petsBtn
+	
+	petsBtn.MouseButton1Click:Connect(function()
+		print("[HatchUI] PETS button clicked!")
+		-- Show simple notification for now
+		local notif = Instance.new("ScreenGui")
+		notif.Name = "PetsNotification"
+		notif.Parent = playerGui
+		
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.new(0, 400, 0, 300)
+		frame.Position = UDim2.new(0.5, -200, 0.5, -150)
+		frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+		frame.Parent = notif
+		
+		local corner2 = Instance.new("UICorner")
+		corner2.CornerRadius = UDim.new(0, 20)
+		corner2.Parent = frame
+		
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, 0, 0, 50)
+		title.Text = "🎒 MY PETS"
+		title.TextColor3 = Color3.fromRGB(255, 215, 0)
+		title.TextSize = 28
+		title.Font = Enum.Font.GothamBold
+		title.BackgroundTransparency = 1
+		title.Parent = frame
+		
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.new(1, -40, 0, 100)
+		text.Position = UDim2.new(0, 20, 0.5, -50)
+		text.Text = "Inventory coming soon!\n\nYour pets will appear here."
+		text.TextColor3 = Color3.fromRGB(200, 200, 200)
+		text.TextSize = 18
+		text.Font = Enum.Font.Gotham
+		text.BackgroundTransparency = 1
+		text.Parent = frame
+		
+		local close = Instance.new("TextButton")
+		close.Size = UDim2.new(0, 100, 0, 40)
+		close.Position = UDim2.new(0.5, -50, 1, -60)
+		close.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+		close.Text = "CLOSE"
+		close.TextSize = 18
+		close.Font = Enum.Font.GothamBold
+		close.Parent = frame
+		
+		Instance.new("UICorner", close).CornerRadius = UDim.new(0, 10)
+		
+		close.MouseButton1Click:Connect(function()
+			notif:Destroy()
+		end)
+	end)
+	
+	print("[HatchUI] PETS button created successfully!")
+end)
+
 return {
 	requestHatch = requestHatch,
 	showHatchPopup = showHatchPopup,
