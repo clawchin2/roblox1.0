@@ -272,7 +272,11 @@ end
 
 -- Inventory button in main UI
 local function createInventoryButton()
-	local mainUI = gui:WaitForChild("GameUI")
+	local mainUI = gui:WaitForChild("GameUI", 10)
+	if not mainUI then
+		warn("[InventoryUI] GameUI not found!")
+		return
+	end
 	
 	local invBtn = Instance.new("TextButton")
 	invBtn.Name = "InventoryButton"
@@ -300,14 +304,27 @@ local function createInventoryButton()
 			Size = UDim2.new(0, 700, 0, 500)
 		}):Play()
 	end)
+	
+	print("[InventoryUI] PETS button created!")
 end
 
 -- Wait for main UI then add button
 if gui:FindFirstChild("GameUI") then
 	createInventoryButton()
 else
-	gui.ChildAdded:Wait()
-	createInventoryButton()
+	-- Keep checking until GameUI exists
+	task.spawn(function()
+		local attempts = 0
+		while attempts < 30 do
+			if gui:FindFirstChild("GameUI") then
+				createInventoryButton()
+				return
+			end
+			attempts = attempts + 1
+			task.wait(0.5)
+		end
+		warn("[InventoryUI] GameUI never found after 15 seconds")
+	end)
 end
 
 print("[InventoryUI] Ready - Press 🎒 PETS button to open inventory")
