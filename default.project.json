@@ -21,7 +21,7 @@
         "$className": "StarterPlayerScripts",
         "UI": { "$path": "src/StarterPlayer/StarterPlayerScripts/Client/UI.client.lua" },
         "HatchUI": { "$path": "src/StarterPlayer/StarterPlayerScripts/Client/HatchUI.client.lua" },
-        "InventoryUI": { "$path": "src/StarterPlayer/StarterPlayerScripts/InventoryUI.client.lua" }
+        "InventoryUI": { "$path": "src/StarterPlayer/StarterPlayerScripts/Client/InventoryUI.client.lua" }
       }
     },
     "Workspace": {
