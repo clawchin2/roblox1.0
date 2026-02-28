@@ -393,13 +393,26 @@ end
 -- CLOSE SHOP/PURCHASE WINDOWS
 -- ============================================
 local function closeShopWindows()
-	-- Close GameUI ShopFrame (Egg Shop)
+	-- Close GameUI EggShopFrame (Egg Shop) - try multiple possible names
 	local gameUI = playerGui:FindFirstChild("GameUI")
 	if gameUI then
-		local shopFrame = gameUI:FindFirstChild("ShopFrame")
+		-- Try EggShopFrame first (new name)
+		local shopFrame = gameUI:FindFirstChild("EggShopFrame")
 		if shopFrame then
 			shopFrame.Visible = false
-			print("[HatchUI] Closed GameUI.ShopFrame")
+			print("[HatchUI] Closed GameUI.EggShopFrame")
+		else
+			-- Fallback: look for frame with "EGG" in title
+			for _, child in ipairs(gameUI:GetChildren()) do
+				if child:IsA("Frame") or child:IsA("ScrollingFrame") then
+					local titleLabel = child:FindFirstChild("TextLabel")
+					if titleLabel and titleLabel.Text and string.find(titleLabel.Text:upper(), "EGG") then
+						child.Visible = false
+						print("[HatchUI] Closed egg shop by title: " .. child.Name)
+						break
+					end
+				end
+			end
 		end
 	end
 	

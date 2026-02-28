@@ -185,6 +185,7 @@ shopBtn.Parent = screen
 
 -- Shop frame
 local shopFrame = Instance.new("Frame")
+shopFrame.Name = "EggShopFrame"
 shopFrame.Size = UDim2.new(0, 350, 0, 400)
 shopFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
 shopFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
