@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -64,6 +65,12 @@ local CREATURE_IMAGES = {
 	["World Serpent"] = "rbxassetid://0",
 }
 
+-- Print all image IDs for debugging
+print("[HatchUI] Creature Images Configured:")
+for name, id in pairs(CREATURE_IMAGES) do
+	print("  - " .. name .. ": " .. id)
+end
+
 -- ============================================
 -- RARITY COLORS (From Expert Knowledge)
 -- ============================================
@@ -72,6 +79,7 @@ local RARITY_COLORS = {
 	Common = Color3.fromRGB(169, 169, 169),    -- Gray
 	Uncommon = Color3.fromRGB(0, 255, 0),      -- Green
 	Rare = Color3.fromRGB(0, 100, 255),        -- Blue
+	Epic = Color3.fromRGB(150, 0, 255),        -- Purple
 	Legendary = Color3.fromRGB(255, 215, 0)    -- Gold
 }
 
@@ -79,6 +87,7 @@ local RARITY_GLOW = {
 	Common = Color3.fromRGB(100, 100, 100),
 	Uncommon = Color3.fromRGB(0, 150, 0),
 	Rare = Color3.fromRGB(0, 50, 200),
+	Epic = Color3.fromRGB(100, 0, 200),
 	Legendary = Color3.fromRGB(255, 180, 0)
 }
 
@@ -154,13 +163,14 @@ local function createHatchPopup()
 	rarityLabel.Font = Enum.Font.GothamBold
 	rarityLabel.Parent = mainFrame
 	
-	-- Pet display frame
+	-- Pet display frame (circular background)
 	local petDisplay = Instance.new("Frame")
 	petDisplay.Name = "PetDisplay"
 	petDisplay.Size = UDim2.new(0, 100, 0, 100)
 	petDisplay.Position = UDim2.new(0.5, -50, 0, 155)
 	petDisplay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	petDisplay.BorderSizePixel = 0
+	petDisplay.ClipsDescendants = true -- Clip to circle
 	petDisplay.Parent = mainFrame
 	
 	local petCorner = Instance.new("UICorner")
@@ -177,10 +187,25 @@ local function createHatchPopup()
 	local petImage = Instance.new("ImageLabel")
 	petImage.Name = "PetImage"
 	petImage.Size = UDim2.new(1, 0, 1, 0)
+	petImage.Position = UDim2.new(0, 0, 0, 0)
 	petImage.BackgroundTransparency = 1
 	petImage.Image = "" -- Will be set when showing
 	petImage.ScaleType = Enum.ScaleType.Fit
+	petImage.ImageColor3 = Color3.fromRGB(255, 255, 255) -- Ensure white tint
 	petImage.Parent = petDisplay
+	
+	-- DEBUG: Image loading status
+	local imageStatus = Instance.new("TextLabel")
+	imageStatus.Name = "ImageStatus"
+	imageStatus.Size = UDim2.new(1, 0, 0, 20)
+	imageStatus.Position = UDim2.new(0, 0, 0.5, -10)
+	imageStatus.BackgroundTransparency = 1
+	imageStatus.Text = "📷"
+	imageStatus.TextColor3 = Color3.fromRGB(100, 100, 100)
+	imageStatus.TextScaled = true
+	imageStatus.Font = Enum.Font.GothamBold
+	imageStatus.Visible = false -- Hidden by default
+	imageStatus.Parent = petImage
 	
 	-- Stats frame
 	local statsFrame = Instance.new("Frame")
@@ -259,6 +284,7 @@ local function createHatchPopup()
 		rarityLabel = rarityLabel,
 		petDisplay = petDisplay,
 		petImage = petImage,
+		imageStatus = imageStatus,
 		petStroke = petStroke,
 		speedLabel = speedLabel,
 		jumpLabel = jumpLabel,
@@ -296,14 +322,39 @@ function showHatchPopup(petData)
 	hatchPopup.petStroke.Color = glowColor
 	hatchPopup.stroke.Color = glowColor
 	
-	-- Set creature image
+	-- Set creature image with DEBUG logging
 	local imageId = CREATURE_IMAGES[petData.name] or ""
+	print("[HatchUI] Looking for image: '" .. petData.name .. "' -> ID: '" .. imageId .. "'")
+	
 	if imageId and imageId ~= "" and imageId ~= "rbxassetid://0" then
 		hatchPopup.petImage.Image = imageId
 		hatchPopup.petImage.Visible = true
+		hatchPopup.imageStatus.Visible = false
+		print("[HatchUI] Set image to: " .. imageId)
+		
+		-- Try to preload the image
+		task.spawn(function()
+			local success, err = pcall(function()
+				ContentProvider:PreloadAsync({hatchPopup.petImage})
+			end)
+			if success then
+				print("[HatchUI] Image preloaded successfully")
+			else
+				warn("[HatchUI] Image preload failed: " .. tostring(err))
+			end
+		end)
 	else
-		-- No image yet, show placeholder text
+		-- No image found - show debug info
 		hatchPopup.petImage.Visible = false
+		hatchPopup.imageStatus.Visible = true
+		hatchPopup.imageStatus.Text = "❓"
+		warn("[HatchUI] No image found for: '" .. petData.name .. "'")
+		
+		-- List available images for debugging
+		print("[HatchUI] Available creature images:")
+		for name, _ in pairs(CREATURE_IMAGES) do
+			print("  - " .. name)
+		end
 	end
 	
 	-- Update stats safely
@@ -321,8 +372,8 @@ function showHatchPopup(petData)
 	
 	-- Animate in with Back easing
 	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	local targetSize = UDim2.new(0, 400, 0, 320)
-	local targetPos = UDim2.new(0.5, -200, 0.5, -160)
+	targetSize = UDim2.new(0, 400, 0, 320)
+	targetPos = UDim2.new(0.5, -200, 0.5, -160)
 	
 	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
 	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})
@@ -358,8 +409,8 @@ function hideHatchPopup()
 	end
 	
 	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	local targetSize = UDim2.new(0, 0, 0, 0)
-	local targetPos = UDim2.new(0.5, 0, 0.5, 0)
+	targetSize = UDim2.new(0, 0, 0, 0)
+	targetPos = UDim2.new(0.5, 0, 0.5, 0)
 	
 	local sizeTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Size = targetSize})
 	local posTween = TweenService:Create(hatchPopup.mainFrame, tweenInfo, {Position = targetPos})

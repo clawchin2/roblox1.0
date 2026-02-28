@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -14,7 +15,7 @@ print("[InventorySystem] Loading...")
 -- CONFIG
 -- ============================================
 
--- Creature Images (Upload to Roblox and paste IDs here)
+-- Creature Images (Image ID = Decal ID - 1)
 local CREATURE_IMAGES = {
 	["Tiny Dragon"] = "rbxassetid://82027454638424",
 	["Baby Unicorn"] = "rbxassetid://119581593087587",
@@ -30,6 +31,12 @@ local CREATURE_IMAGES = {
 	["Ancient Dragon"] = "rbxassetid://0",
 	["World Serpent"] = "rbxassetid://0",
 }
+
+-- Print configured images for debugging
+print("[InventorySystem] Configured creature images:")
+for name, id in pairs(CREATURE_IMAGES) do
+	print("  - " .. name .. ": " .. id)
+end
 
 local RARITY_COLORS = {
 	All = Color3.fromRGB(150, 150, 150),
@@ -218,6 +225,7 @@ local function createInventoryUI()
 		icon.Position = UDim2.new(0.5, -40, 0, 15)
 		icon.BackgroundColor3 = rarityColor
 		icon.BorderSizePixel = 0
+		icon.ClipsDescendants = true
 		icon.Parent = card
 		
 		Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
@@ -227,8 +235,19 @@ local function createInventoryUI()
 		petImage.Name = "PetImage"
 		petImage.Size = UDim2.new(1, 0, 1, 0)
 		petImage.BackgroundTransparency = 1
-		petImage.Image = CREATURE_IMAGES[petData.name] or ""
+		
+		-- Get image with debug
+		local imageId = CREATURE_IMAGES[petData.name]
+		if imageId and imageId ~= "rbxassetid://0" then
+			petImage.Image = imageId
+			print("[InventorySystem] Set image for " .. petData.name .. ": " .. imageId)
+		else
+			petImage.Image = ""
+			warn("[InventorySystem] No image found for: " .. petData.name)
+		end
+		
 		petImage.ScaleType = Enum.ScaleType.Fit
+		petImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 		petImage.Parent = icon
 		
 		Instance.new("UICorner", petImage).CornerRadius = UDim.new(1, 0)
