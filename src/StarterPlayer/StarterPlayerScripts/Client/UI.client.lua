@@ -250,4 +250,81 @@ shopBtn.MouseButton1Click:Connect(function()
     shopFrame.Visible = not shopFrame.Visible
 end)
 
-print("[UI] Ready")
+-- PETS / Inventory button
+local invBtn = Instance.new("TextButton")
+invBtn.Name = "InventoryButton"
+invBtn.Size = UDim2.new(0, 120, 0, 45)
+invBtn.Position = UDim2.new(0, 20, 1, -60)
+invBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+invBtn.Text = "🎒 PETS"
+invBtn.TextSize = 20
+invBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", invBtn).CornerRadius = UDim.new(0, 10)
+invBtn.Parent = screen
+
+-- Inventory UI
+local invFrame = Instance.new("Frame")
+invFrame.Name = "InventoryFrame"
+invFrame.Size = UDim2.new(0, 600, 0, 400)
+invFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+invFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+invFrame.Visible = false
+Instance.new("UICorner", invFrame).CornerRadius = UDim.new(0, 20)
+invFrame.Parent = screen
+
+-- Inventory title
+local invTitle = Instance.new("TextLabel")
+invTitle.Size = UDim2.new(1, 0, 0, 50)
+invTitle.BackgroundTransparency = 1
+invTitle.Text = "🎒 MY PETS"
+invTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+invTitle.TextSize = 28
+invTitle.Font = Enum.Font.GothamBold
+invTitle.Parent = invFrame
+
+-- Close button
+local invClose = Instance.new("TextButton")
+invClose.Size = UDim2.new(0, 40, 0, 40)
+invClose.Position = UDim2.new(1, -50, 0, 10)
+invClose.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+invClose.Text = "✕"
+invClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+invClose.TextSize = 20
+invClose.Font = Enum.Font.GothamBold
+Instance.new("UICorner", invClose).CornerRadius = UDim.new(0, 10)
+invClose.Parent = invFrame
+
+invClose.MouseButton1Click:Connect(function()
+    invFrame.Visible = false
+end)
+
+-- Pet count
+local petCount = Instance.new("TextLabel")
+petCount.Size = UDim2.new(0, 200, 0, 30)
+petCount.Position = UDim2.new(0, 20, 0, 55)
+petCount.BackgroundTransparency = 1
+petCount.Text = "Pets: 0"
+petCount.TextColor3 = Color3.fromRGB(200, 200, 200)
+petCount.TextSize = 16
+petCount.Font = Enum.Font.Gotham
+petCount.TextXAlignment = Enum.TextXAlignment.Left
+petCount.Parent = invFrame
+
+-- Coming soon text
+local comingSoon = Instance.new("TextLabel")
+comingSoon.Size = UDim2.new(1, 0, 0, 100)
+comingSoon.Position = UDim2.new(0, 0, 0.5, -50)
+comingSoon.BackgroundTransparency = 1
+comingSoon.Text = "📦 Inventory System\n\nYour pets will appear here!"
+comingSoon.TextColor3 = Color3.fromRGB(150, 150, 150)
+comingSoon.TextSize = 20
+comingSoon.Font = Enum.Font.GothamBold
+comingSoon.Parent = invFrame
+
+-- Toggle inventory
+invBtn.MouseButton1Click:Connect(function()
+    invFrame.Visible = not invFrame.Visible
+    print("[UI] Inventory toggled: " .. tostring(invFrame.Visible))
+end)
+
+print("[UI] Ready with PETS button")
