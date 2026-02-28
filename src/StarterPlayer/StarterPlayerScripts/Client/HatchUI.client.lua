@@ -367,9 +367,9 @@ function showHatchPopup(petData)
 	hatchPopup.speedLabel.Text = "Speed: " .. (tonumber(stats.speed) or tonumber(petData.speed) or 0)
 	hatchPopup.jumpLabel.Text = "Jump: " .. (tonumber(stats.jump) or tonumber(petData.jump) or 0)
 	
-	-- Coin multiplier display
+	-- Coin multiplier display - use coin emoji or text
 	local coinMultiplier = tonumber(stats.coins) or tonumber(petData.coins) or 1
-	hatchPopup.coinsLabel.Text = "x" .. coinMultiplier .. " coins"
+	hatchPopup.coinsLabel.Text = coinMultiplier .. "x Coins"
 	
 	-- Show popup with animation
 	hatchPopup.mainFrame.Visible = true
