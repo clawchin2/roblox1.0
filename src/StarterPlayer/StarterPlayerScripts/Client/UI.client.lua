@@ -327,4 +327,4 @@ invBtn.MouseButton1Click:Connect(function()
     print("[UI] Inventory toggled: " .. tostring(invFrame.Visible))
 end)
 
-print("[UI] Ready with PETS button")// Force rebuild Sat Feb 28 01:52:54 EST 2026
+print("[UI] Ready with PETS button")
