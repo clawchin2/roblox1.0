@@ -304,8 +304,8 @@ local function createInventoryUI()
 		
 		-- Check if this pet is currently equipped
 		local function updateEquipButton()
-			local equippedName = player:GetAttribute("EquippedPetName")
-			if equippedName == petData.name then
+			local equippedId = player:GetAttribute("EquippedPet")
+			if equippedId == petData.id then
 				equipBtn.Text = "EQUIPPED"
 				equipBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 			else
@@ -317,12 +317,17 @@ local function createInventoryUI()
 		updateEquipButton()
 		
 		equipBtn.MouseButton1Click:Connect(function()
-			-- Set equipped pet
+			-- Fire event to server to equip this pet (server tracks multiplier)
+			local equipEvent = ReplicatedStorage:WaitForChild("EquipPetEvent")
+			equipEvent:FireServer(petData.id)
+			
+			-- Also set local attributes for UI
+			player:SetAttribute("EquippedPet", petData.id)
 			player:SetAttribute("EquippedPetName", petData.name)
 			player:SetAttribute("EquippedPetRarity", petData.rarity)
 			player:SetAttribute("EquippedPetCoins", petData.coins)
 			
-			print("[Inventory] Equipped: " .. petData.name .. " (" .. petData.coins .. "x coins)")
+			print("[Inventory] Requesting equip: " .. petData.name .. " (" .. petData.coins .. "x coins)")
 			
 			-- Update all buttons
 			for _, child in ipairs(scrollFrame:GetChildren()) do
@@ -335,16 +340,10 @@ local function createInventoryUI()
 			
 			-- Update this button
 			updateEquipButton()
-			
-			-- Notify other systems
-			local equippedEvent = ReplicatedStorage:FindFirstChild("EquippedPetChanged")
-			if equippedEvent then
-				equippedEvent:FireClient(player, petData)
-			end
 		end)
 		
 		-- Listen for equip changes from other sources
-		player:GetAttributeChangedSignal("EquippedPetName"):Connect(updateEquipButton)
+		player:GetAttributeChangedSignal("EquippedPet"):Connect(updateEquipButton)
 		
 		return card
 	end
@@ -438,7 +437,7 @@ end
 
 task.spawn(function()
 	-- Wait for HatchUI to load first
-	task.wait(3)
+	task.wait(2)
 	
 	-- Create the inventory UI
 	local invGui = createInventoryUI()
@@ -447,11 +446,23 @@ task.spawn(function()
 		return
 	end
 	
+	-- Listen for server equip confirmations
+	local equipEvent = ReplicatedStorage:WaitForChild("EquipPetEvent", 10)
+	if equipEvent then
+		equipEvent.OnClientEvent:Connect(function(data)
+			if data.success then
+				print("[InventorySystem] Server confirmed equip: " .. data.name)
+			else
+				warn("[InventorySystem] Server rejected equip: " .. (data.error or "unknown"))
+			end
+		end)
+	end
+	
 	-- Listen for hatch events
 	local hatchEvent = ReplicatedStorage:WaitForChild("HatchEvent", 10)
 	if hatchEvent then
-		hatchEvent.OnClientEvent:Connect(function(data)
-			if data and data.success then
+		hatchEvent.OnClientEvent:Connect(function(status, data)
+			if status == "success" and data then
 				-- Pet was hatched! Add to inventory
 				addHatchedPet({
 					id = data.id,

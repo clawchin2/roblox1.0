@@ -151,6 +151,38 @@ function HatchEgg(player, eggType)
     return nil, "Hatch failed"
 end
 
+-- Handle manual pet equip from inventory
+local equipPetEvent = Instance.new("RemoteEvent")
+equipPetEvent.Name = "EquipPetEvent"
+equipPetEvent.Parent = ReplicatedStorage
+
+equipPetEvent.OnServerEvent:Connect(function(player, petId)
+    local data = playerData[player.UserId]
+    if not data then return end
+    
+    -- Verify player owns this pet
+    if data.pets[petId] and data.pets[petId] > 0 then
+        data.equipped = petId
+        print("[GameManager] " .. player.Name .. " equipped pet: " .. petId)
+        
+        -- Get pet data for confirmation
+        for _, pet in ipairs(GameConfig.CREATURES) do
+            if pet.id == petId then
+                equipPetEvent:FireClient(player, {
+                    success = true,
+                    id = pet.id,
+                    name = pet.name,
+                    rarity = pet.rarity,
+                    coins = pet.coins
+                })
+                return
+            end
+        end
+    else
+        equipPetEvent:FireClient(player, {success = false, error = "Pet not owned"})
+    end
+end)
+
 -- Expose hatch function
 _G.HatchEgg = HatchEgg
 _G.GetPlayerData = function(userId) return playerData[userId] end
