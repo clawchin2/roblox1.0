@@ -243,15 +243,30 @@ local function createEggAnimationUI()
 	eggContainer.BackgroundTransparency = 1
 	eggContainer.Parent = screenGui
 	
+	-- Egg image container (oval shape for egg appearance)
+	local eggImageContainer = Instance.new("Frame")
+	eggImageContainer.Name = "EggImageContainer"
+	eggImageContainer.Size = UDim2.new(0, 160, 0, 200)
+	eggImageContainer.Position = UDim2.new(0.5, -80, 0, 0)
+	eggImageContainer.BackgroundTransparency = 1
+	eggImageContainer.ClipsDescendants = true
+	eggImageContainer.Parent = eggContainer
+	
+	-- Make container egg-shaped
+	local eggContainerCorner = Instance.new("UICorner")
+	eggContainerCorner.CornerRadius = UDim.new(0.5, 0)
+	eggContainerCorner.Parent = eggImageContainer
+	
 	-- Egg image
 	local eggImage = Instance.new("ImageLabel")
 	eggImage.Name = "EggImage"
-	eggImage.Size = UDim2.new(1, 0, 0, 200)
+	eggImage.Size = UDim2.new(1, 0, 1, 0)
 	eggImage.Position = UDim2.new(0, 0, 0, 0)
 	eggImage.BackgroundTransparency = 1
 	eggImage.Image = "rbxassetid://0" -- Will be set based on egg type
-	eggImage.ScaleType = Enum.ScaleType.Fit
-	eggImage.Parent = eggContainer
+	eggImage.ScaleType = Enum.ScaleType.Crop
+	eggImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+	eggImage.Parent = eggImageContainer
 	
 	-- Egg shadow (for depth)
 	local eggShadow = Instance.new("ImageLabel")
@@ -288,6 +303,7 @@ local function createEggAnimationUI()
 		screenGui = screenGui,
 		overlay = overlay,
 		eggContainer = eggContainer,
+		eggImageContainer = eggImageContainer,
 		eggImage = eggImage,
 		statusLabel = statusLabel,
 		particleContainer = particleContainer
@@ -597,15 +613,16 @@ local function playHatchSequence(petData, eggType)
 	local eggImageId = EGG_IMAGES[eggType] or EGG_IMAGES.basic
 	if eggImageId and eggImageId ~= "rbxassetid://0" then
 		ui.eggImage.Image = eggImageId
+		ui.eggImage.ImageColor3 = Color3.fromRGB(255, 255, 255) -- No tint
 	else
-		-- Default egg appearance
+		-- Default egg appearance - use gradient instead of solid color
 		ui.eggImage.BackgroundColor3 = Color3.fromRGB(200, 150, 100)
-		ui.eggImage.BackgroundTransparency = 0
+		ui.eggImage.BackgroundTransparency = 0.3
 	end
 	
-	-- Reset
-	ui.eggImage.Size = UDim2.new(1, 0, 0, 200)
-	ui.eggImage.Position = UDim2.new(0, 0, 0, 0)
+	-- Reset egg container (the oval-shaped one that shakes)
+	ui.eggImageContainer.Size = UDim2.new(0, 160, 0, 200)
+	ui.eggImageContainer.Position = UDim2.new(0.5, -80, 0, 0)
 	ui.eggImage.ImageTransparency = 0
 	ui.eggImage.Rotation = 0
 	ui.statusLabel.Text = "Hatching..."
@@ -625,18 +642,18 @@ local function playHatchSequence(petData, eggType)
 	-- PHASE 2: Shaking (intensity increases - LONGER DURATION)
 	ui.statusLabel.Text = "Something's moving..."
 	
-	-- Light shake (longer)
-	shakeEgg(ui.eggImage, 4, 1.0)
+	-- Light shake (longer) - shake the container, not just the image
+	shakeEgg(ui.eggImageContainer, 4, 1.0)
 	task.wait(0.4)
 	
 	-- Medium shake (longer)
 	ui.statusLabel.Text = "Something is stirring..."
-	shakeEgg(ui.eggImage, 8, 1.2)
+	shakeEgg(ui.eggImageContainer, 8, 1.2)
 	task.wait(0.4)
 	
 	-- Heavy shake (longer)
 	ui.statusLabel.Text = "It's hatching!"
-	shakeEgg(ui.eggImage, 15, 1.5)
+	shakeEgg(ui.eggImageContainer, 15, 1.5)
 	
 	-- PHASE 3: Hatch burst (slower)
 	local rarityColor = RARITY_COLORS[petData.rarity] or Color3.fromRGB(255, 215, 0)
@@ -651,9 +668,12 @@ local function playHatchSequence(petData, eggType)
 	
 	TweenService:Create(flash, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
 	
-	-- Egg scale down and fade (slower)
-	TweenService:Create(ui.eggImage, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-		Size = UDim2.new(1.8, 0, 0, 360),
+	-- Egg scale down and fade (slower) - scale the container
+	TweenService:Create(ui.eggImageContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+		Size = UDim2.new(0, 280, 0, 350),
+		Position = UDim2.new(0.5, -140, 0, -25)
+	}):Play()
+	TweenService:Create(ui.eggImage, TweenInfo.new(0.5), {
 		ImageTransparency = 1
 	}):Play()
 	

@@ -117,21 +117,23 @@ function showHatchPopup(petData)
     end)
 end
 
--- Listen for hatch results - SINGLE TABLE FORMAT
+-- Listen for hatch results - DISABLED (HatchUI.client.lua handles this now)
+-- The egg animation system in HatchUI.client.lua handles all hatch displays
+-- This prevents duplicate popups
 if hatchEvent then
     hatchEvent.OnClientEvent:Connect(function(data)
-        print("[UI] Received hatch data: " .. tostring(data.success))
+        print("[UI] Received hatch data: " .. tostring(data.success) .. " (handled by HatchUI)")
         
+        -- Only handle errors here - success is handled by HatchUI
         if not data or typeof(data) ~= "table" then
             showError("Invalid response from server")
             return
         end
         
-        if data.success then
-            showHatchPopup(data)
-        else
+        if not data.success then
             showError(data.error or "Hatch failed")
         end
+        -- Success case is handled by HatchUI.client.lua
     end)
 end
 
