@@ -49,6 +49,133 @@ local CREATURE_IMAGES = {
 }
 
 -- ============================================
+-- EVOLUTION SYSTEM (NEW)
+-- ============================================
+-- Each creature evolves into its own advanced form
+-- Stage 1 → 2 → 3 → 4
+-- Evolution requires 3 of same creature + coins
+local EVOLUTION_LINES = {
+	{
+		base = "Tiny Dragon",
+		stages = {
+			{stage = 1, name = "Tiny Dragon", coins = 1, image = "rbxassetid://100352058348043"},
+			{stage = 2, name = "Dragon", coins = 2, image = "rbxassetid://0"},
+			{stage = 3, name = "Great Dragon", coins = 5, image = "rbxassetid://0"},
+			{stage = 4, name = "Ancient Dragon", coins = 10, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Baby Unicorn",
+		stages = {
+			{stage = 1, name = "Baby Unicorn", coins = 1, image = "rbxassetid://111331437291244"},
+			{stage = 2, name = "Unicorn", coins = 2, image = "rbxassetid://0"},
+			{stage = 3, name = "Royal Unicorn", coins = 5, image = "rbxassetid://0"},
+			{stage = 4, name = "Celestial Unicorn", coins = 10, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Mini Griffin",
+		stages = {
+			{stage = 1, name = "Mini Griffin", coins = 1, image = "rbxassetid://111177400493982"},
+			{stage = 2, name = "Griffin", coins = 2, image = "rbxassetid://0"},
+			{stage = 3, name = "Imperial Griffin", coins = 5, image = "rbxassetid://0"},
+			{stage = 4, name = "Mythic Griffin", coins = 10, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Fire Fox",
+		stages = {
+			{stage = 1, name = "Fire Fox", coins = 2, image = "rbxassetid://99173862361424"},
+			{stage = 2, name = "Flame Fox", coins = 4, image = "rbxassetid://0"},
+			{stage = 3, name = "Inferno Fox", coins = 8, image = "rbxassetid://0"},
+			{stage = 4, name = "Volcanic Fox", coins = 15, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Ice Wolf",
+		stages = {
+			{stage = 1, name = "Ice Wolf", coins = 2, image = "rbxassetid://85023087116411"},
+			{stage = 2, name = "Frost Wolf", coins = 4, image = "rbxassetid://0"},
+			{stage = 3, name = "Glacier Wolf", coins = 8, image = "rbxassetid://0"},
+			{stage = 4, name = "Arctic Wolf", coins = 15, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Thunder Bird",
+		stages = {
+			{stage = 1, name = "Thunder Bird", coins = 2, image = "rbxassetid://115102972096254"},
+			{stage = 2, name = "Storm Bird", coins = 4, image = "rbxassetid://0"},
+			{stage = 3, name = "Tempest Bird", coins = 8, image = "rbxassetid://0"},
+			{stage = 4, name = "Thunderbird King", coins = 15, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Phoenix",
+		stages = {
+			{stage = 1, name = "Phoenix", coins = 5, image = "rbxassetid://118782453217813"},
+			{stage = 2, name = "Firebird", coins = 10, image = "rbxassetid://0"},
+			{stage = 3, name = "Sunbird", coins = 20, image = "rbxassetid://0"},
+			{stage = 4, name = "Eternal Phoenix", coins = 50, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Kraken",
+		stages = {
+			{stage = 1, name = "Kraken", coins = 5, image = "rbxassetid://135611116481587"},
+			{stage = 2, name = "Sea Beast", coins = 10, image = "rbxassetid://0"},
+			{stage = 3, name = "Ocean Lord", coins = 20, image = "rbxassetid://0"},
+			{stage = 4, name = "Abyssal Kraken", coins = 50, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Cerberus",
+		stages = {
+			{stage = 1, name = "Cerberus", coins = 5, image = "rbxassetid://103052472025415"},
+			{stage = 2, name = "Hellhound", coins = 10, image = "rbxassetid://0"},
+			{stage = 3, name = "Underworld Guard", coins = 20, image = "rbxassetid://0"},
+			{stage = 4, name = "Cerberus Alpha", coins = 50, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Hydra",
+		stages = {
+			{stage = 1, name = "Hydra", coins = 10, image = "rbxassetid://129788824744472"},
+			{stage = 2, name = "Multi-Head", coins = 20, image = "rbxassetid://0"},
+			{stage = 3, name = "Hydra Emperor", coins = 40, image = "rbxassetid://0"},
+			{stage = 4, name = "World Hydra", coins = 100, image = "rbxassetid://0"},
+		}
+	},
+	{
+		base = "Chimera",
+		stages = {
+			{stage = 1, name = "Chimera", coins = 10, image = "rbxassetid://92846288329362"},
+			{stage = 2, name = "Beast", coins = 20, image = "rbxassetid://0"},
+			{stage = 3, name = "Chimera Lord", coins = 40, image = "rbxassetid://0"},
+			{stage = 4, name = "Primordial Chimera", coins = 100, image = "rbxassetid://0"},
+		}
+	},
+}
+
+-- Evolution costs
+local EVOLUTION_COSTS = {
+	{from = 1, to = 2, coinCost = 100, robuxSkip = 25},
+	{from = 2, to = 3, coinCost = 500, robuxSkip = 49},
+	{from = 3, to = 4, coinCost = 2000, robuxSkip = 99},
+}
+
+-- Helper: Get evolution line for a creature name
+function GetEvolutionLine(creatureName)
+	for _, line in ipairs(EVOLUTION_LINES) do
+		for _, stage in ipairs(line.stages) do
+			if stage.name == creatureName then
+				return line
+			end
+		end
+	end
+	return nil
+end
+
+-- ============================================
 -- EGG IMAGES (Add your egg decal IDs here)
 -- ============================================
 local EGG_IMAGES = {
