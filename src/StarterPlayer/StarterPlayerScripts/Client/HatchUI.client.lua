@@ -616,15 +616,25 @@ local function playHatchSequence(petData, eggType)
 	local ui = eggAnimationUI
 	ui.screenGui.Enabled = true
 	
-	-- Set egg image based on type
-	local eggImageId = EGG_IMAGES[eggType] or EGG_IMAGES.basic
+	-- Set egg image based on type (map egg IDs to image keys)
+	local eggTypeMapping = {
+		basic_egg = "basic",
+		fantasy_egg = "fantasy",
+		mythic_egg = "mythic",
+	}
+	
+	local eggImageKey = eggTypeMapping[eggType] or "basic"
+	local eggImageId = EGG_IMAGES[eggImageKey] or EGG_IMAGES.basic
+	
+	print("[HatchUI] Egg type: " .. tostring(eggType) .. " -> Key: " .. eggImageKey .. " -> Image: " .. tostring(eggImageId))
+	
 	if eggImageId and eggImageId ~= "rbxassetid://0" then
 		ui.eggImage.Image = eggImageId
 		ui.eggImage.ImageColor3 = Color3.fromRGB(255, 255, 255) -- No tint
 	else
-		-- Default egg appearance - use gradient instead of solid color
-		ui.eggImage.BackgroundColor3 = Color3.fromRGB(200, 150, 100)
-		ui.eggImage.BackgroundTransparency = 0.3
+		-- Default egg appearance
+		ui.eggImage.Image = ""
+		ui.eggImageContainer.BackgroundColor3 = Color3.fromRGB(200, 150, 100)
 	end
 	
 	-- Reset egg container (the oval-shaped one that shakes)
@@ -778,9 +788,15 @@ function updateEquippedUI(petData)
 	if equippedEvent then
 		equippedEvent:FireClient(player, petData)
 	end
+	
+	-- Set equipped pet attributes (including coin multiplier)
+	local coinMult = tonumber(petData.coins) or 1
 	player:SetAttribute("EquippedPet", petData.id)
 	player:SetAttribute("EquippedPetName", petData.name)
 	player:SetAttribute("EquippedPetRarity", petData.rarity)
+	player:SetAttribute("EquippedPetCoins", coinMult)
+	
+	print("[HatchUI] Equipped " .. petData.name .. " with " .. coinMult .. "x coin multiplier")
 end
 
 -- ============================================

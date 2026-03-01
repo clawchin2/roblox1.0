@@ -288,30 +288,63 @@ local function createInventoryUI()
 		coinsLabel.Font = Enum.Font.Gotham
 		coinsLabel.Parent = card
 		
-		-- Click to select
-		local clickBtn = Instance.new("TextButton")
-		clickBtn.Name = "ClickArea"
-		clickBtn.Size = UDim2.new(1, 0, 1, 0)
-		clickBtn.BackgroundTransparency = 1
-		clickBtn.Text = ""
-		clickBtn.Parent = card
+		-- Equip button
+		local equipBtn = Instance.new("TextButton")
+		equipBtn.Name = "EquipButton"
+		equipBtn.Size = UDim2.new(0.8, 0, 0, 28)
+		equipBtn.Position = UDim2.new(0.1, 0, 0, 165)
+		equipBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+		equipBtn.Text = "EQUIP"
+		equipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		equipBtn.TextSize = 14
+		equipBtn.Font = Enum.Font.GothamBold
+		equipBtn.Parent = card
 		
-		local hoverTween = nil
-		clickBtn.MouseEnter:Connect(function()
-			if hoverTween then hoverTween:Cancel() end
-			hoverTween = TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)})
-			hoverTween:Play()
+		Instance.new("UICorner", equipBtn).CornerRadius = UDim.new(0, 8)
+		
+		-- Check if this pet is currently equipped
+		local function updateEquipButton()
+			local equippedName = player:GetAttribute("EquippedPetName")
+			if equippedName == petData.name then
+				equipBtn.Text = "EQUIPPED"
+				equipBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+			else
+				equipBtn.Text = "EQUIP"
+				equipBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+			end
+		end
+		
+		updateEquipButton()
+		
+		equipBtn.MouseButton1Click:Connect(function()
+			-- Set equipped pet
+			player:SetAttribute("EquippedPetName", petData.name)
+			player:SetAttribute("EquippedPetRarity", petData.rarity)
+			player:SetAttribute("EquippedPetCoins", petData.coins)
+			
+			print("[Inventory] Equipped: " .. petData.name .. " (" .. petData.coins .. "x coins)")
+			
+			-- Update all buttons
+			for _, child in ipairs(scrollFrame:GetChildren()) do
+				if child:IsA("Frame") and child:FindFirstChild("EquipButton") then
+					local btn = child:FindFirstChild("EquipButton")
+					btn.Text = "EQUIP"
+					btn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+				end
+			end
+			
+			-- Update this button
+			updateEquipButton()
+			
+			-- Notify other systems
+			local equippedEvent = ReplicatedStorage:FindFirstChild("EquippedPetChanged")
+			if equippedEvent then
+				equippedEvent:FireClient(player, petData)
+			end
 		end)
 		
-		clickBtn.MouseLeave:Connect(function()
-			if hoverTween then hoverTween:Cancel() end
-			hoverTween = TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)})
-			hoverTween:Play()
-		end)
-		
-		clickBtn.MouseButton1Click:Connect(function()
-			print("[Inventory] Selected pet: " .. petData.name)
-		end)
+		-- Listen for equip changes from other sources
+		player:GetAttributeChangedSignal("EquippedPetName"):Connect(updateEquipButton)
 		
 		return card
 	end

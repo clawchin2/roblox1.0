@@ -229,9 +229,78 @@ local function createLimitedDropUI()
 end
 
 -- ============================================
+-- EQUIPPED PET DISPLAY
+-- ============================================
+local function createEquippedPetUI()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "EquippedPetUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+	
+	local frame = Instance.new("Frame")
+	frame.Name = "EquippedFrame"
+	frame.Size = UDim2.new(0, 250, 0, 80)
+	frame.Position = UDim2.new(0, 20, 0.3, -40)
+	frame.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+	frame.BorderSizePixel = 0
+	frame.Parent = screenGui
+	
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(150, 100, 255)
+	stroke.Thickness = 2
+	stroke.Parent = frame
+	
+	-- Title
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.new(1, 0, 0, 20)
+	title.Position = UDim2.new(0, 0, 0, 5)
+	title.BackgroundTransparency = 1
+	title.Text = "EQUIPPED PET"
+	title.TextColor3 = Color3.fromRGB(150, 100, 255)
+	title.TextSize = 14
+	title.Font = Enum.Font.GothamBold
+	title.Parent = frame
+	
+	-- Pet name
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "PetName"
+	nameLabel.Size = UDim2.new(1, 0, 0, 25)
+	nameLabel.Position = UDim2.new(0, 0, 0, 25)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = "None"
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextSize = 18
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.Parent = frame
+	
+	-- Multiplier
+	local multLabel = Instance.new("TextLabel")
+	multLabel.Name = "Multiplier"
+	multLabel.Size = UDim2.new(1, 0, 0, 20)
+	multLabel.Position = UDim2.new(0, 0, 0, 50)
+	multLabel.BackgroundTransparency = 1
+	multLabel.Text = "1x Coins"
+	multLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	multLabel.TextSize = 16
+	multLabel.Font = Enum.Font.Gotham
+	multLabel.Parent = frame
+	
+	return {
+		screenGui = screenGui,
+		frame = frame,
+		nameLabel = nameLabel,
+		multLabel = multLabel,
+	}
+end
+
+-- ============================================
 -- IDLE COLLECTION LOGIC
 -- ============================================
 local idleUI = createIdleUI()
+local equippedPetUI = createEquippedPetUI()
 local limitedDropUI = createLimitedDropUI()
 
 local sessionCoins = 0
@@ -239,6 +308,7 @@ local currentRate = 0
 local lastUpdate = tick()
 local boostMultiplier = 1
 local equippedPet = nil
+local equippedCoinMult = 1
 
 -- Calculate idle rate based on equipped pet
 local function calculateIdleRate()
@@ -251,6 +321,23 @@ local function calculateIdleRate()
 	local rarityMult = IDLE_CONFIG.rarityMultipliers[rarity] or 1
 	
 	return math.floor(baseRate * rarityMult * boostMultiplier)
+end
+
+-- Update equipped pet display
+local function updateEquippedDisplay()
+	local petName = player:GetAttribute("EquippedPetName")
+	local petCoins = player:GetAttribute("EquippedPetCoins") or 1
+	
+	if petName then
+		equippedPetUI.nameLabel.Text = petName
+		equippedPetUI.multLabel.Text = petCoins .. "x Coins"
+		equippedCoinMult = petCoins
+		print("[IdleCollector] Equipped: " .. petName .. " (" .. petCoins .. "x)")
+	else
+		equippedPetUI.nameLabel.Text = "None"
+		equippedPetUI.multLabel.Text = "1x Coins"
+		equippedCoinMult = 1
+	end
 end
 
 -- Update UI
@@ -471,11 +558,18 @@ player:GetAttributeChangedSignal("EquippedPetName"):Connect(function()
 			rarity = petRarity or "Common",
 			stage = 1 -- Default, should be fetched from data
 		}
+		updateEquippedDisplay()
 		updateIdleDisplay()
 	end
 end)
 
+-- Also listen for coin multiplier changes
+player:GetAttributeChangedSignal("EquippedPetCoins"):Connect(function()
+	updateEquippedDisplay()
+end)
+
 -- Initial display
+updateEquippedDisplay()
 updateIdleDisplay()
 
 print("[IdleCollector] Ready! Tap other players to steal coins.")
