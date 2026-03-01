@@ -28,8 +28,8 @@ local CREATURE_IMAGES = {
 	["Cerberus"] = "rbxassetid://103052472025415",
 	["Hydra"] = "rbxassetid://129788824744472",
 	["Chimera"] = "rbxassetid://92846288329362",
-	["Ancient Dragon"] = "rbxassetid://0",
-	["World Serpent"] = "rbxassetid://0",
+	["Ancient Dragon"] = "rbxassetid://78620678079164",
+	["World Serpent"] = "rbxassetid://77638570657733",
 }
 
 -- Print configured images for debugging

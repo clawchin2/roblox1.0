@@ -44,8 +44,8 @@ local CREATURE_IMAGES = {
 	["Cerberus"] = "rbxassetid://103052472025415",
 	["Hydra"] = "rbxassetid://129788824744472",
 	["Chimera"] = "rbxassetid://92846288329362",
-	["Ancient Dragon"] = "rbxassetid://0",
-	["World Serpent"] = "rbxassetid://0",
+	["Ancient Dragon"] = "rbxassetid://78620678079164",
+	["World Serpent"] = "rbxassetid://77638570657733",
 }
 
 -- ============================================
@@ -61,7 +61,7 @@ local EVOLUTION_LINES = {
 			{stage = 1, name = "Tiny Dragon", coins = 1, image = "rbxassetid://100352058348043"},
 			{stage = 2, name = "Dragon", coins = 2, image = "rbxassetid://0"},
 			{stage = 3, name = "Great Dragon", coins = 5, image = "rbxassetid://0"},
-			{stage = 4, name = "Ancient Dragon", coins = 10, image = "rbxassetid://0"},
+			{stage = 4, name = "Ancient Dragon", coins = 10, image = "rbxassetid://78620678079164"},
 		}
 	},
 	{
@@ -154,6 +154,15 @@ local EVOLUTION_LINES = {
 			{stage = 4, name = "Primordial Chimera", coins = 100, image = "rbxassetid://0"},
 		}
 	},
+	{
+		base = "World Serpent",
+		stages = {
+			{stage = 1, name = "World Serpent", coins = 50, image = "rbxassetid://77638570657733"},
+			{stage = 2, name = "Serpent", coins = 75, image = "rbxassetid://0"},
+			{stage = 3, name = "Elder Serpent", coins = 100, image = "rbxassetid://0"},
+			{stage = 4, name = "Cosmic Serpent", coins = 200, image = "rbxassetid://0"},
+		}
+	},
 }
 
 -- Evolution costs
@@ -179,9 +188,9 @@ end
 -- EGG IMAGES (Add your egg decal IDs here)
 -- ============================================
 local EGG_IMAGES = {
-	basic = "rbxassetid://0",      -- Replace with your basic egg texture ID
-	fantasy = "rbxassetid://0",    -- Replace with your fantasy egg texture ID
-	mythic = "rbxassetid://0",     -- Replace with your mythic egg texture ID
+	basic = "rbxassetid://83070901143184",
+	fantasy = "rbxassetid://93554625669786",
+	mythic = "rbxassetid://88637558540590",
 }
 
 -- ============================================
