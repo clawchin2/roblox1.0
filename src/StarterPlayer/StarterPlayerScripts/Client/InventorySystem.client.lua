@@ -461,9 +461,10 @@ task.spawn(function()
 	-- Listen for hatch events
 	local hatchEvent = ReplicatedStorage:WaitForChild("HatchEvent", 10)
 	if hatchEvent then
-		hatchEvent.OnClientEvent:Connect(function(status, data)
-			if status == "success" and data then
+		hatchEvent.OnClientEvent:Connect(function(data)
+			if data and data.success then
 				-- Pet was hatched! Add to inventory
+				print("[InventorySystem] Hatch success received: " .. tostring(data.name))
 				addHatchedPet({
 					id = data.id,
 					name = data.name,
@@ -471,6 +472,8 @@ task.spawn(function()
 					speed = data.speed,
 					coins = data.coins
 				})
+			elseif data then
+				print("[InventorySystem] Hatch event but not success: " .. tostring(data.error))
 			end
 		end)
 		print("[InventorySystem] Connected to hatch events!")
