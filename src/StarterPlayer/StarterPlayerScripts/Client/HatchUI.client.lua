@@ -243,30 +243,37 @@ local function createEggAnimationUI()
 	eggContainer.BackgroundTransparency = 1
 	eggContainer.Parent = screenGui
 	
-	-- Egg image container (oval shape for egg appearance)
+	-- Egg image container - oval mask
 	local eggImageContainer = Instance.new("Frame")
 	eggImageContainer.Name = "EggImageContainer"
-	eggImageContainer.Size = UDim2.new(0, 160, 0, 200)
-	eggImageContainer.Position = UDim2.new(0.5, -80, 0, 0)
-	eggImageContainer.BackgroundTransparency = 1
+	eggImageContainer.Size = UDim2.new(0, 150, 0, 190)
+	eggImageContainer.Position = UDim2.new(0.5, -75, 0.5, -95)
+	eggImageContainer.BackgroundColor3 = Color3.fromRGB(200, 150, 100)
+	eggImageContainer.BackgroundTransparency = 0
+	eggImageContainer.BorderSizePixel = 0
 	eggImageContainer.ClipsDescendants = true
 	eggImageContainer.Parent = eggContainer
 	
-	-- Make container egg-shaped
+	-- Make container egg-shaped with oval corner radius
 	local eggContainerCorner = Instance.new("UICorner")
-	eggContainerCorner.CornerRadius = UDim.new(0.5, 0)
+	eggContainerCorner.CornerRadius = UDim.new(0.45, 0)
 	eggContainerCorner.Parent = eggImageContainer
 	
-	-- Egg image
+	-- Egg image - fills the oval container
 	local eggImage = Instance.new("ImageLabel")
 	eggImage.Name = "EggImage"
 	eggImage.Size = UDim2.new(1, 0, 1, 0)
 	eggImage.Position = UDim2.new(0, 0, 0, 0)
 	eggImage.BackgroundTransparency = 1
-	eggImage.Image = "rbxassetid://0" -- Will be set based on egg type
+	eggImage.Image = "rbxassetid://0"
 	eggImage.ScaleType = Enum.ScaleType.Crop
 	eggImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	eggImage.Parent = eggImageContainer
+	
+	-- Inner corner to match container
+	local imageCorner = Instance.new("UICorner")
+	imageCorner.CornerRadius = UDim.new(0.45, 0)
+	imageCorner.Parent = eggImage
 	
 	-- Egg shadow (for depth)
 	local eggShadow = Instance.new("ImageLabel")
@@ -621,10 +628,9 @@ local function playHatchSequence(petData, eggType)
 	end
 	
 	-- Reset egg container (the oval-shaped one that shakes)
-	ui.eggImageContainer.Size = UDim2.new(0, 160, 0, 200)
-	ui.eggImageContainer.Position = UDim2.new(0.5, -80, 0, 0)
+	ui.eggImageContainer.Size = UDim2.new(0, 150, 0, 190)
+	ui.eggImageContainer.Position = UDim2.new(0.5, -75, 0.5, -95)
 	ui.eggImage.ImageTransparency = 0
-	ui.eggImage.Rotation = 0
 	ui.statusLabel.Text = "Hatching..."
 	
 	-- Fade in overlay (slower)
@@ -670,8 +676,8 @@ local function playHatchSequence(petData, eggType)
 	
 	-- Egg scale down and fade (slower) - scale the container
 	TweenService:Create(ui.eggImageContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-		Size = UDim2.new(0, 280, 0, 350),
-		Position = UDim2.new(0.5, -140, 0, -25)
+		Size = UDim2.new(0, 220, 0, 280),
+		Position = UDim2.new(0.5, -110, 0.5, -140)
 	}):Play()
 	TweenService:Create(ui.eggImage, TweenInfo.new(0.5), {
 		ImageTransparency = 1
@@ -724,21 +730,15 @@ function showResultPopup(petData)
 		ui.petImage.Visible = false
 	end
 	
-	-- Stats with debug logging
-	local stats = petData.stats or {}
-	local speedVal = tonumber(stats.speed) or tonumber(petData.speed) or 0
+	-- Stats - use direct values from server
+	local speedVal = tonumber(petData.speed) or 0
 	ui.speedLabel.Text = "Speed: " .. speedVal
 	
-	-- Coin multiplier with fallback chain
-	local coinMult = 1
-	if stats.coins then
-		coinMult = tonumber(stats.coins) or 1
-	elseif petData.coins then
-		coinMult = tonumber(petData.coins) or 1
-	end
+	-- Coin multiplier - use direct value from server
+	local coinMult = tonumber(petData.coins) or 1
 	
 	-- DEBUG: Log what we received
-	print("[HatchUI] Coin data - stats.coins: " .. tostring(stats.coins) .. ", petData.coins: " .. tostring(petData.coins) .. ", final: " .. coinMult)
+	print("[HatchUI] Creature: " .. tostring(petData.name) .. ", Rarity: " .. tostring(petData.rarity) .. ", Coins: " .. tostring(petData.coins) .. ", Final: " .. coinMult)
 	
 	ui.coinsLabel.Text = coinMult .. "x Coins"
 	
